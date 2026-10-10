@@ -433,3 +433,6 @@ dist/
 .source/
 node_modules/
 
+
+# 本地发布产物（dist 打包 zip）
+release/
