@@ -1,0 +1,242 @@
+---
+import '../styles/global.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import SearchOverlay from '../components/SearchOverlay.astro';
+import { SITE } from '../config/site';
+import { TOOLS, CATEGORY_MAP } from '../lib/tools';
+
+interface Props {
+  title: string;
+  description?: string;
+  active?: 'home' | 'tools' | 'tool' | 'search' | 'favorites' | 'recent' | 'about' | '';
+  /** 详情页传入后，收藏/最近使用会记录该 slug */
+  trackSlug?: string;
+}
+
+const { title, description = SITE.description, active = '', trackSlug = '' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+
+/* 搜索索引（体积很小，直接内联给客户端） */
+const searchIndex = TOOLS.map((t) => ({
+  s: t.slug,
+  n: t.name,
+  m: t.memo,
+  c: CATEGORY_MAP[t.cat]?.name ?? '',
+  x: CATEGORY_MAP[t.cat]?.color ?? '#512bd4',
+}));
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="generator" content={Astro.generator} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={`${SITE.name} · ${SITE.enName}`} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <script is:inline>
+      // 主题初始化（阻塞式，避免闪烁）：优先本地选择，其次跟随系统
+      (function () {
+        try {
+          var t = localStorage.getItem('codewf-tools.theme');
+          var dark = t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+          if (dark) document.documentElement.dataset.theme = 'dark';
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body data-track={trackSlug || undefined}>
+    <SiteHeader active={active} />
+    <main class="wrap">
+      <slot />
+    </main>
+    <SiteFooter />
+    <SearchOverlay />
+    <div id="toast"><div class="box"></div></div>
+
+    <script type="application/json" id="toolIndex" set:html={JSON.stringify(searchIndex)} />
+    <script>
+      import { isFavorite, toggleFavorite, getFavorites, pushRecent } from '../lib/store';
+      import { toast } from '../tools/ui';
+
+      const index = JSON.parse(document.getElementById('toolIndex')?.textContent ?? '[]') as {
+        s: string;
+        n: string;
+        m: string;
+        c: string;
+        x: string;
+      }[];
+
+      /* 主题 */
+      const themeBtn = document.getElementById('themeBtn') as HTMLButtonElement | null;
+      const applyTheme = (dark: boolean) => {
+        if (dark) document.documentElement.dataset.theme = 'dark';
+        else delete document.documentElement.dataset.theme;
+        try {
+          localStorage.setItem('codewf-tools.theme', dark ? 'dark' : 'light');
+        } catch {}
+        if (themeBtn) themeBtn.textContent = dark ? '☀' : '☾';
+      };
+      themeBtn?.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme !== 'dark'));
+      if (themeBtn) themeBtn.textContent = document.documentElement.dataset.theme === 'dark' ? '☀' : '☾';
+
+      /* 移动端导航与分类下拉 */
+      document.getElementById('navToggle')?.addEventListener('click', () => document.getElementById('navDrawer')?.classList.toggle('open'));
+      const catBtn = document.getElementById('catDropBtn');
+      catBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('catMenu')?.classList.toggle('hidden');
+      });
+      document.addEventListener('click', () => document.getElementById('catMenu')?.classList.add('hidden'));
+
+      /* 收藏计数（全站共享） */
+      const favCount = () => {
+        const el = document.getElementById('navFavCnt');
+        if (el) el.textContent = String(getFavorites().length);
+      };
+      favCount();
+      window.addEventListener('favorites-change', favCount);
+
+      /* 收藏按钮：任何 [data-fav="slug"] */
+      document.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-fav]');
+        if (!btn) return;
+        e.preventDefault();
+        const slug = btn.dataset.fav!;
+        const added = toggleFavorite(slug);
+        btn.classList.toggle('on', added);
+        btn.classList.toggle('fav-flash', true);
+        if (btn.classList.contains('star')) btn.textContent = added ? '★' : '☆';
+        else btn.textContent = added ? '★ 已收藏' : '☆ 收藏';
+        btn.title = added ? '取消收藏' : '加入收藏';
+        window.dispatchEvent(new Event('favorites-change'));
+        toast(added ? '已加入收藏' : '已取消收藏');
+      });
+
+      /* 记录最近使用 */
+      const track = document.body.dataset.track;
+      if (track) pushRecent(track);
+
+      /* 复制路由按钮 */
+      document.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-copy-route]');
+        if (!btn) return;
+        const url = `${location.origin}/${btn.dataset.copyRoute}/`;
+        void navigator.clipboard.writeText(url).then(() => toast('已复制工具链接'));
+      });
+
+      /* 搜索浮层 */
+      const overlay = document.getElementById('overlay')!;
+      const input = document.getElementById('omniInput') as HTMLInputElement;
+      const resBox = document.getElementById('omniRes')!;
+      const countBox = document.getElementById('omniCount')!;
+      let selected = 0;
+      let current: typeof index = [];
+
+      const esc = (s: string) => s.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]!);
+      const tokens = (q: string) => q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      const hay = (t: (typeof index)[number]) => `${t.n} ${t.m} ${t.s} ${t.c}`.toLowerCase();
+      const hl = (text: string, q: string) => {
+        let out = esc(text);
+        for (const tok of tokens(q)) {
+          out = out.replace(new RegExp(`(${tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>');
+        }
+        return out;
+      };
+
+      const renderOmni = (q: string) => {
+        const toks = tokens(q);
+        current = toks.length ? index.filter((t) => toks.every((tok) => hay(t).includes(tok))).slice(0, 40) : index.slice(0, 8);
+        selected = 0;
+        countBox.textContent = toks.length ? (current.length ? `${current.length} 个结果` : '无结果') : '热门工具';
+        if (!current.length) {
+          resBox.innerHTML = `<div class="none">没有找到「${esc(q)}」<br><span style="font-size:12px">按 Enter 进入完整搜索页</span></div>`;
+          return;
+        }
+        resBox.innerHTML = current
+          .map(
+            (t, i) => `<a class="row${i === 0 ? ' sel' : ''}" href="/${t.s}/" style="--c:${t.x}">
+              <span class="dot"></span>
+              <span class="t"><b>${hl(t.n, q)}</b><span>${hl(t.m, q)}</span></span>
+              <span class="r">/${t.s}</span>
+            </a>`,
+          )
+          .join('');
+      };
+
+      const openOmni = (q = '') => {
+        overlay.classList.add('open');
+        input.value = q;
+        renderOmni(q);
+        input.focus();
+        input.select();
+      };
+      const closeOmni = () => overlay.classList.remove('open');
+
+      document.getElementById('searchOpen')?.addEventListener('click', () => openOmni(''));
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeOmni();
+      });
+      input.addEventListener('input', () => renderOmni(input.value));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (!current.length) return;
+          selected = (selected + (e.key === 'ArrowDown' ? 1 : -1) + current.length) % current.length;
+          resBox.querySelectorAll('.row').forEach((el, i) => el.classList.toggle('sel', i === selected));
+          resBox.querySelectorAll('.row')[selected]?.scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter') {
+          const q = input.value.trim();
+          if (current.length) location.href = `/${current[selected].s}/`;
+          else if (q) location.href = `/search/?q=${encodeURIComponent(q)}`;
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        const typing = /INPUT|TEXTAREA|SELECT/.test((document.activeElement as HTMLElement)?.tagName ?? '');
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          openOmni('');
+          return;
+        }
+        if (e.key === 'Escape') {
+          closeOmni();
+          document.getElementById('navDrawer')?.classList.remove('open');
+          document.getElementById('catMenu')?.classList.add('hidden');
+          return;
+        }
+        if (e.key === '/' && !typing && !overlay.classList.contains('open')) {
+          e.preventDefault();
+          openOmni('');
+        }
+      });
+
+      /* 首页 Hero 搜索跳转 */
+      const heroForm = document.getElementById('heroForm') as HTMLFormElement | null;
+      if (heroForm) {
+        heroForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const q = (document.getElementById('heroInput') as HTMLInputElement).value.trim();
+          location.href = q ? `/search/?q=${encodeURIComponent(q)}` : '/tools/';
+        });
+      }
+
+      /* 工具卡收藏状态同步（服务端已渲染，客户端仅纠正本地状态） */
+      document.querySelectorAll<HTMLElement>('[data-fav]').forEach((btn) => {
+        const on = isFavorite(btn.dataset.fav!);
+        btn.classList.toggle('on', on);
+        if (btn.classList.contains('star')) btn.textContent = on ? '★' : '☆';
+        else btn.textContent = on ? '★ 已收藏' : '☆ 收藏';
+      });
+    </script>
+  </body>
+</html>

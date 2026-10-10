@@ -1,0 +1,80 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { RECENT_LIMIT } from '../lib/store';
+---
+
+<BaseLayout title="最近使用 · 码坊工具箱" active="recent" description={`最近打开过的工具（最多 ${RECENT_LIMIT} 条），记录在本机浏览器，不需要账号。`}>
+  <div class="crumb-bar">
+    <a href="/">码坊工具箱</a><span class="sep">/</span><span>最近使用</span>
+  </div>
+  <div class="sec-head">
+    <h2>最近使用</h2><span class="en">Recent</span>
+    <p>最多保留 {RECENT_LIMIT} 条，重复打开会置顶</p>
+    <button class="more" type="button" id="recClear" style="border:0">清空记录</button>
+  </div>
+  <div id="recentBody"></div>
+</BaseLayout>
+
+<script>
+  const index = JSON.parse(document.getElementById('toolIndex')?.textContent ?? '[]') as {
+    s: string;
+    n: string;
+    m: string;
+    c: string;
+    x: string;
+  }[];
+  const map = new Map(index.map((t) => [t.s, t]));
+  const body = document.getElementById('recentBody')!;
+
+  const rel = (ts: number) => {
+    const d = Date.now() - ts;
+    if (d < 60_000) return '刚刚';
+    if (d < 3_600_000) return `${Math.floor(d / 60_000)} 分钟前`;
+    if (d < 86_400_000) return `${Math.floor(d / 3_600_000)} 小时前`;
+    if (d < 7 * 86_400_000) return `${Math.floor(d / 86_400_000)} 天前`;
+    const dt = new Date(ts);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  };
+
+  const render = () => {
+    let recents: { slug: string; ts: number }[] = [];
+    try {
+      recents = JSON.parse(localStorage.getItem('codewf-tools.recent') ?? '[]');
+    } catch {
+      recents = [];
+    }
+    const rows = recents.map((r) => ({ tool: map.get(r.slug), ts: r.ts })).filter((x) => x.tool) as {
+      tool: (typeof index)[number];
+      ts: number;
+    }[];
+    if (!rows.length) {
+      body.innerHTML = `
+        <div class="empty">
+          <div class="big">🕘</div>
+          <h3>还没有使用记录</h3>
+          <p>打开任意工具后会记在这台设备上，方便下次快速回到</p>
+          <div class="acts"><a class="btn btn-primary" href="/tools/">去浏览全部工具</a></div>
+        </div>`;
+      return;
+    }
+    body.innerHTML = `<div class="stack">${rows
+      .map(
+        (x) => `<div class="list-card" style="--c:${x.tool.x}">
+          <span class="dot"></span>
+          <div class="info"><a href="/${x.tool.s}/"><b>${x.tool.n.replace(/[&<>"]/g, '')}</b></a><p>${x.tool.m.replace(/[&<>"]/g, '')}</p></div>
+          <span class="tag">${x.tool.c.replace(/[&<>"]/g, '')}</span>
+          <time>${rel(x.ts)}</time>
+          <button class="btn btn-ghost btn-sm" type="button" data-fav="${x.tool.s}">☆ 收藏</button>
+        </div>`,
+      )
+      .join('')}</div>`;
+  };
+
+  render();
+  document.getElementById('recClear')?.addEventListener('click', () => {
+    try {
+      localStorage.setItem('codewf-tools.recent', '[]');
+    } catch {}
+    render();
+  });
+</script>

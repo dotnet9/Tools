@@ -1,0 +1,145 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ToolCard from '../components/ToolCard.astro';
+import { SITE } from '../config/site';
+import { TOOLS, categoryOf, toolsOfCategory } from '../lib/tools';
+import type { Tool } from '../lib/tools';
+import { isLive, isCustom, STATE_LABEL, toolState } from '../tools/manifest';
+
+export function getStaticPaths() {
+  return TOOLS.map((tool) => ({ params: { slug: tool.slug }, props: { tool } }));
+}
+
+interface Props {
+  tool: Tool;
+}
+
+const { tool } = Astro.props;
+const cat = categoryOf(tool);
+const state = toolState(tool.slug);
+const live = isLive(tool.slug);
+const custom = isCustom(tool.slug);
+const related = toolsOfCategory(tool.cat).filter((t) => t.slug !== tool.slug).slice(0, 6);
+const issueUrl = `${SITE.issues}/new?title=${encodeURIComponent('工具需求：' + tool.name)}&body=${encodeURIComponent(
+  '工具路径：/' + tool.slug + '\n分类：' + cat.name + '\n\n期望能力：\n',
+)}`;
+const planPoints = tool.memo
+  .split(/[，、；;]/)
+  .map((s) => s.trim())
+  .filter((s) => s.length > 1)
+  .slice(0, 4);
+
+const STATE_NOTE: Record<string, string> = {
+  live: '已在本站实现，纯浏览器内运行。',
+  pending: '该工具在主站已有实现，但依赖服务端能力（如服务端生成二维码、文件），迁移到纯前端站点需要换一套实现方案。',
+  todo: '该工具已在清单中登记，界面与实现尚未开始。可以先去仓库提需求，说明期望的能力与使用场景。',
+};
+const stateNote = STATE_NOTE[state];
+const statePill = state === 'live' ? 'ok' : state === 'pending' ? 'blue' : 'muted';
+---
+
+<BaseLayout
+  title={`${tool.name} · 码坊工具箱`}
+  description={`${tool.name}：${tool.memo}（纯浏览器内处理，不上传数据）`}
+  active="tool"
+  trackSlug={tool.slug}
+>
+  <div class="crumb-bar">
+    <a href="/">码坊工具箱</a><span class="sep">/</span>
+    <a href="/tools/">全部工具</a><span class="sep">/</span>
+    <a href={`/tools?c=${cat.slug}`}>{cat.name}</a><span class="sep">/</span>
+    <span>{tool.name}</span>
+  </div>
+
+  <div class="tool-head">
+    <span class="em">{cat.icon}</span>
+    <div style="flex:1;min-width:240px">
+      <h1>{tool.name}</h1>
+      <p class="desc">{tool.memo}</p>
+      <div class="meta">
+        <a class="pill" href={`/tools?c=${cat.slug}`} style={`background:${cat.color}22;color:${cat.color}`}>
+          {cat.icon} {cat.name}
+        </a>
+        <span class="slugname">tools.codewf.com/{tool.slug}</span>
+        <span class={`pill ${statePill}`}>{STATE_LABEL[state]}</span>
+      </div>
+    </div>
+    <div class="acts">
+      <button class="btn btn-ghost" type="button" data-fav={tool.slug}>☆ 收藏</button>
+      <button class="btn btn-ghost" type="button" data-copy-route={tool.slug}>复制链接</button>
+      <a class="btn btn-ghost" href={issueUrl} target="_blank" rel="noopener">提需求 ↗</a>
+    </div>
+  </div>
+
+  <div class="card tool-surface">
+    <div class="bar">
+      <b>{tool.name} · 工具界面</b>
+      <span class={`pill ${statePill}`}>{STATE_LABEL[state]}</span>
+      <div class="right">
+        {live ? <span class="pill muted">纯前端本地处理</span> : <span class="pill muted">界面示意 · 尚未实现</span>}
+      </div>
+    </div>
+    <div class="body">
+      {live && custom && <div data-tool={tool.slug} data-variant="custom"><div data-slot="custom"></div></div>}
+      {live && !custom && <div data-tool={tool.slug} data-variant="spec"><div data-slot="body"></div></div>}
+      {!live && (
+        <div class="ph-wrap">
+          <div>
+            <h3 style="margin:0 0 6px;font-size:16px">开发状态</h3>
+            <p class="muted" style="margin:0">{stateNote}</p>
+            <h3 style="margin:18px 0 6px;font-size:16px">计划能力</h3>
+            <ul class="ph-list">
+              {planPoints.map((p) => <li>{p}</li>)}
+            </ul>
+            <div class="route-hint">线上地址 <b>/{tool.slug}</b> · 分类 {cat.name}</div>
+            <div class="ph-note">
+              <b>实现约定：</b>纯浏览器内计算，不上传输入内容；无账号、无后端；如需网络能力会提供本地降级方案。
+            </div>
+          </div>
+          <div>
+            <h3 style="margin:0 0 6px;font-size:16px">界面草案</h3>
+            <div class="out-empty" style="text-align:left;margin-bottom:10px;padding:16px">
+              <b style="color:var(--text)">输入区</b>
+              <p class="muted" style="margin:4px 0 0;font-size:12.5px">文本 / 文件 / 参数表单（按工具类型）</p>
+            </div>
+            <div class="out-empty" style="text-align:left;padding:16px">
+              <b style="color:var(--text)">结果区</b>
+              <p class="muted" style="margin:4px 0 0;font-size:12.5px">结果展示 + 复制 / 下载 / 清空</p>
+            </div>
+            <div class="mini-acts">
+              <a class="btn btn-soft btn-sm" href="/tools?sort=status">看可用的工具</a>
+              <a class="btn btn-ghost btn-sm" href={issueUrl} target="_blank" rel="noopener">提需求 ↗</a>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+
+  {related.length > 0 && (
+    <section class="section related">
+      <div class="sec-head">
+        <h2>同类工具</h2><span class="en">Related</span>
+        <p>{cat.name} · 共 {related.length} 个同类工具</p>
+      </div>
+      <div class="tool-grid">
+        {related.map((t) => <ToolCard tool={t} />)}
+      </div>
+    </section>
+  )}
+</BaseLayout>
+
+<script>
+  import { registry } from '../tools/registry';
+  import { mountTools } from '../tools/runtime';
+
+  mountTools(registry);
+
+  /* 详情页快捷键：f 收藏 */
+  document.addEventListener('keydown', (e) => {
+    const typing = /INPUT|TEXTAREA|SELECT/.test((document.activeElement as HTMLElement)?.tagName ?? '');
+    if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key.toLowerCase() !== 'f') return;
+    document.querySelector<HTMLElement>('.tool-head [data-fav]')?.click();
+  });
+</script>

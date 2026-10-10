@@ -1,0 +1,14 @@
+---
+interface Props {
+  note?: string;
+}
+const { note = '全部计算在浏览器内完成 · 不上传数据 · 无需登录' } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<footer>
+  <div class="foot-inner">
+    <span>© {year} CodeWF 码坊 · 在线工具站 · <a href="https://doc.codewf.com" target="_blank" rel="noopener">文档站</a> · <a href="https://codewf.com" target="_blank" rel="noopener">博客</a></span>
+    <span>{note}</span>
+  </div>
+</footer>

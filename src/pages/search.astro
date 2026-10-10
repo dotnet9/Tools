@@ -1,0 +1,113 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { TOTAL_TOOLS } from '../lib/tools';
+---
+
+<BaseLayout title="搜索 · 码坊工具箱" active="search" description={`在码坊工具箱的 ${TOTAL_TOOLS} 个工具中搜索：工具名、描述、slug 或分类。`}>
+  <div class="crumb-bar">
+    <a href="/">码坊工具箱</a><span class="sep">/</span><span>搜索</span>
+  </div>
+  <div class="sec-head">
+    <h2>搜索结果</h2><span class="en">Search</span>
+    <p id="searchSub">输入关键词开始搜索（工具名 / 描述 / slug / 分类）</p>
+  </div>
+  <form class="filter-bar" id="searchForm" role="search">
+    <span class="label">关键词</span>
+    <input
+      id="searchInput"
+      type="search"
+      name="q"
+      placeholder="如 时间戳、jwt、base64、icon"
+      autocomplete="off"
+      style="flex:1;min-width:200px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--text)"
+    />
+    <button class="btn btn-primary btn-sm" type="submit">搜索</button>
+    <div class="right"><span class="result-count" id="searchCount"></span></div>
+  </form>
+  <div id="searchBody"></div>
+</BaseLayout>
+
+<script>
+  const index = JSON.parse(document.getElementById('toolIndex')?.textContent ?? '[]') as {
+    s: string;
+    n: string;
+    m: string;
+    c: string;
+    x: string;
+  }[];
+  const input = document.getElementById('searchInput') as HTMLInputElement;
+  const body = document.getElementById('searchBody')!;
+  const sub = document.getElementById('searchSub')!;
+  const count = document.getElementById('searchCount')!;
+
+  const esc = (s: string) => s.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]!);
+  const tokens = (q: string) => q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const hay = (t: (typeof index)[number]) => `${t.n} ${t.m} ${t.s} ${t.c}`.toLowerCase();
+  const hl = (text: string, q: string) => {
+    let out = esc(text);
+    for (const tok of tokens(q)) {
+      out = out.replace(new RegExp(`(${tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>');
+    }
+    return out;
+  };
+
+  const card = (t: (typeof index)[number], q: string) => `
+    <a class="tool-card" href="/${t.s}/" style="--c:${t.x}">
+      <button class="star" type="button" data-fav="${t.s}" title="加入收藏">☆</button>
+      <span class="ttl"><span class="dot"></span><b>${hl(t.n, q)}</b></span>
+      <p>${hl(t.m, q)}</p>
+      <span class="foot"><span class="slugname">/${t.s}</span><span class="tag">${esc(t.c)}</span></span>
+    </a>`;
+
+  const emptyState = (q: string) => `
+    <div class="empty">
+      <div class="big">🫧</div>
+      <h3>没有找到「${esc(q)}」</h3>
+      <p>换个关键词试试，或者告诉我们需要这个工具</p>
+      <div class="acts">
+        <a class="btn btn-primary" href="/tools/">浏览全部工具</a>
+        <a class="btn btn-ghost" href="https://github.com/dotnet9/Tools/issues/new?title=${encodeURIComponent('提议新工具：' + q)}" target="_blank" rel="noopener">提需求 ↗</a>
+      </div>
+    </div>`;
+
+  const render = (q: string) => {
+    const toks = tokens(q);
+    if (!toks.length) {
+      sub.textContent = '输入关键词开始搜索（工具名 / 描述 / slug / 分类）';
+      count.textContent = '';
+      body.innerHTML = `
+        <div class="empty">
+          <div class="big">⌕</div>
+          <h3>输入关键词开始搜索</h3>
+          <p>试试「时间戳」「jwt」「base64」「icon」，或直接浏览全部工具</p>
+          <div class="acts"><a class="btn btn-primary" href="/tools/">浏览全部工具</a></div>
+        </div>`;
+      return;
+    }
+    const hits = index.filter((t) => toks.every((tok) => hay(t).includes(tok)));
+    sub.textContent = `关键词「${q}」命中 ${hits.length} 个工具`;
+    count.textContent = `${hits.length} 个结果`;
+    body.innerHTML = hits.length
+      ? `<div class="tool-grid">${hits.map((t) => card(t, q)).join('')}</div>`
+      : emptyState(q);
+  };
+
+  const run = () => {
+    const q = input.value.trim();
+    const url = q ? `/search/?q=${encodeURIComponent(q)}` : '/search/';
+    history.replaceState(null, '', url);
+    render(q);
+  };
+
+  const initial = new URLSearchParams(location.search).get('q') ?? '';
+  input.value = initial;
+  render(initial);
+  input.addEventListener('input', () => {
+    window.clearTimeout((input as unknown as { _t?: number })._t);
+    (input as unknown as { _t?: number })._t = window.setTimeout(run, 160);
+  });
+  document.getElementById('searchForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    run();
+  });
+</script>

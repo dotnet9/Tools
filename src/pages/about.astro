@@ -1,0 +1,79 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { CATEGORIES, TOTAL_TOOLS } from '../lib/tools';
+import { SITE } from '../config/site';
+import { PENDING_TOOLS, liveCount } from '../tools/manifest';
+
+const live = liveCount();
+const pending = PENDING_TOOLS.length;
+const todo = TOTAL_TOOLS - live - pending;
+
+const links = [
+  { icon: '📚', label: '文档站', href: SITE.docsUrl, note: 'doc.codewf.com' },
+  { icon: '✍️', label: '博客主站', href: SITE.blogUrl, note: 'codewf.com' },
+  { icon: '⌨️', label: '本站源码', href: SITE.repo, note: 'dotnet9/Tools' },
+  { icon: '🗂️', label: '工具清单出处', href: 'https://github.com/dotnet9/Assets.Dotnet9', note: 'Assets.Dotnet9' },
+];
+---
+
+<BaseLayout title="关于 · 码坊工具箱" active="about">
+  <div class="crumb-bar">
+    <a href="/">码坊工具箱</a><span class="sep">/</span><span>关于</span>
+  </div>
+  <div class="sec-head">
+    <h2>关于码坊工具箱</h2><span class="en">About</span><p>tools.codewf.com</p>
+  </div>
+
+  <div class="about-grid">
+    <div class="card">
+      <h2>浏览器内的开发者工具箱</h2>
+      <p>
+        码坊工具箱把开发者日常高频的小工具集中到一个站点：转换、编码、网络、文本、数学、数据……打开即用，
+        不需要安装客户端，也不需要注册账号。项目与 <a href={SITE.docsUrl} target="_blank" rel="noopener">文档站</a>、
+        <a href={SITE.blogUrl} target="_blank" rel="noopener">博客主站</a> 共用同一套设计语言。
+      </p>
+
+      <h2 style="margin-top:18px">数据不上传</h2>
+      <p>
+        所有工具的计算都在你的浏览器内完成 —— 没有后端接口、没有账号体系，图片、令牌、日志等内容都不会离开这台设备。
+        除外部链接跳转与站点统计脚本外，页面本身不发起网络请求。
+      </p>
+
+      <div class="stat-row">
+        <div class="stat"><b>{CATEGORIES.length}</b><span>个分类</span></div>
+        <div class="stat"><b>{TOTAL_TOOLS}</b><span>个工具</span></div>
+        <div class="stat"><b>{live}</b><span>已可用</span></div>
+        <div class="stat"><b>{todo}</b><span>开发中</span></div>
+        <div class="stat"><b>{pending}</b><span>待迁移</span></div>
+      </div>
+
+      <h2 style="margin-top:22px">实现状态</h2>
+      <p style="font-size:13px">
+        清单里的 {TOTAL_TOOLS} 个工具中，已有 <b>{live}</b> 个在浏览器内实现可用（标注「可用」）；
+        <b>{pending}</b> 个在主站有实现但依赖服务端能力，需要重新设计纯前端方案（标注「待迁移」）；
+        其余 <b>{todo}</b> 个为规划中的工具（标注「开发中」），欢迎到仓库提需求或参与实现。
+      </p>
+      <p style="font-size:12.5px" class="muted">
+        另注：仓库中的桌面版同名工具（CodeWF.Toolbox，基于 Avalonia）与本站在同一清单与算法约定上并行演进。
+      </p>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <h2>相关站点</h2>
+        <div class="link-list">
+          {links.map((l) => (
+            <a href={l.href} target="_blank" rel="noopener">{l.icon} {l.label}<small>{l.note}</small></a>
+          ))}
+        </div>
+      </div>
+      <div class="card">
+        <h2>反馈与建议</h2>
+        <p style="font-size:13px">
+          工具算错了，或者想要一个新工具？去仓库提 Issue，或者在任意「开发中」的工具页面点「提需求」。
+        </p>
+        <a class="btn btn-soft btn-sm" href={`${SITE.issues}`} target="_blank" rel="noopener">提 Issue ↗</a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

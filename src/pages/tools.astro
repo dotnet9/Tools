@@ -1,0 +1,141 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ToolCard from '../components/ToolCard.astro';
+import { CATEGORIES, CATEGORY_MAP, TOOLS, TOTAL_TOOLS, toolsOfCategory } from '../lib/tools';
+import { STATE_LABEL, isLive, isPending, toolState } from '../tools/manifest';
+
+const groups = CATEGORIES.map((c) => ({ category: c, tools: toolsOfCategory(c.slug) })).filter((g) => g.tools.length);
+
+const sortOptions = [
+  { key: 'cat', label: '按分类分组' },
+  { key: 'name', label: '按名称排序' },
+  { key: 'status', label: '可用优先' },
+];
+---
+
+<BaseLayout
+  title={`全部工具 · 码坊工具箱`}
+  active="tools"
+  description={`码坊工具箱全部 ${TOTAL_TOOLS} 个工具，按 ${CATEGORIES.length} 个分类浏览；已实现 ${TOOLS.filter((t) => isLive(t.slug)).length} 个。`}
+>
+  <div class="crumb-bar">
+    <a href="/">码坊工具箱</a><span class="sep">/</span><span>全部工具</span>
+  </div>
+
+  <div class="sec-head">
+    <h2 id="toolsTitle">全部工具</h2>
+    <span class="en" id="toolsEn">All tools</span>
+    <p id="toolsSub">{CATEGORIES.length} 个分类 · {TOTAL_TOOLS} 个工具</p>
+  </div>
+
+  <div class="filter-bar">
+    <span class="label">分类</span>
+    <div class="fchips" id="catChips">
+      <a class="fchip" href="/tools/" data-cat="">全部 {TOTAL_TOOLS}</a>
+      {CATEGORIES.map((c) => (
+        <a class="fchip" href={`/tools?c=${c.slug}`} data-cat={c.slug}>{c.icon} {c.name} {toolsOfCategory(c.slug).length}</a>
+      ))}
+    </div>
+    <div class="right">
+      <span class="result-count" id="toolsCount">{TOTAL_TOOLS} 个结果</span>
+      <div class="fchips" id="sortChips">
+        {sortOptions.map((o) => <a class="fchip" href={`/tools?sort=${o.key}`} data-sort={o.key}>{o.label}</a>)}
+      </div>
+    </div>
+  </div>
+
+  <!-- 分组视图（默认，服务端渲染；分类筛选时按需隐藏分组） -->
+  <div id="groupedView">
+    {groups.map((g) => (
+      <div data-group={g.category.slug}>
+        <div class="group-head">
+          <h3>{g.category.icon} {g.category.name}</h3>
+          <span class="en">{g.category.en}</span>
+          <span class="line"></span>
+          <span class="c">{g.tools.length} 个 · {g.tools.filter((t) => isLive(t.slug)).length} 个可用</span>
+        </div>
+        <div class="tool-grid">
+          {g.tools.map((t) => <ToolCard tool={t} />)}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <!-- 排序视图（客户端填充） -->
+  <div id="flatView" hidden>
+    <div class="group-head">
+      <h3 id="flatTitle">排序结果</h3><span class="en" id="flatEn">Sorted</span>
+      <span class="line"></span><span class="c" id="flatCount"></span>
+    </div>
+    <div class="tool-grid" id="flatGrid"></div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { CATEGORIES, CATEGORY_MAP, TOOLS, toolsOfCategory } from '../lib/tools';
+  import { isLive, isPending } from '../tools/manifest';
+
+  const grouped = document.getElementById('groupedView')!;
+  const flat = document.getElementById('flatView')!;
+  const flatGrid = document.getElementById('flatGrid')!;
+  const flatTitle = document.getElementById('flatTitle')!;
+  const flatCount = document.getElementById('flatCount')!;
+  const count = document.getElementById('toolsCount')!;
+  const title = document.getElementById('toolsTitle')!;
+  const sub = document.getElementById('toolsSub')!;
+  const en = document.getElementById('toolsEn')!;
+
+  /* 以服务端渲染的卡片为模板（保证两种视图样式一致） */
+  const template = new Map<string, Element>();
+  grouped.querySelectorAll('.tool-card[data-slug]').forEach((card) => {
+    template.set((card as HTMLElement).dataset.slug!, card.cloneNode(true));
+  });
+
+  const buildCard = (slug: string) => template.get(slug)?.cloneNode(true) as HTMLElement | undefined;
+
+  const rank = (slug: string) => (isLive(slug) ? 0 : isPending(slug) ? 1 : 2);
+
+  const params = new URLSearchParams(location.search);
+  const cat = params.get('c');
+  const sort = params.get('sort') ?? 'cat';
+  const activeCat = cat && CATEGORY_MAP[cat] ? cat : null;
+
+  /* 分类筛选（分组视图内隐藏其它分组） */
+  grouped.querySelectorAll<HTMLElement>('[data-group]').forEach((group) => {
+    group.hidden = !!activeCat && group.dataset.group !== activeCat;
+  });
+
+  const list = activeCat ? toolsOfCategory(activeCat) : TOOLS;
+  const category = activeCat ? CATEGORY_MAP[activeCat] : null;
+  const catCount = CATEGORIES.length;
+
+  title.textContent = category ? `${category.icon} ${category.name}` : '全部工具';
+  en.textContent = category ? category.en : 'All tools';
+  sub.textContent = `${category ? `${category.memo} · ` : `${catCount} 个分类 · `}共 ${list.length} 个工具`;
+  count.textContent = `${list.length} 个结果`;
+
+  /* 排序视图 */
+  if (sort !== 'cat') {
+    grouped.hidden = true;
+    flat.hidden = false;
+    const sorted = [...list].sort((a, b) =>
+      sort === 'name' ? a.name.localeCompare(b.name, 'zh-Hans-CN') : rank(a.slug) - rank(b.slug) || a.name.localeCompare(b.name, 'zh-Hans-CN'),
+    );
+    flatTitle.textContent = sort === 'name' ? '按名称排序' : '可用优先';
+    flatCount.textContent = `${sorted.length} 个 · 可用 ${sorted.filter((t) => isLive(t.slug)).length} 个`;
+    flatGrid.innerHTML = '';
+    sorted.forEach((t) => {
+      const card = buildCard(t.slug);
+      if (card) flatGrid.appendChild(card);
+    });
+  }
+
+  /* 筛选条激活态 */
+  document.querySelectorAll<HTMLElement>('#catChips .fchip').forEach((chip) => {
+    const value = chip.dataset.cat ?? '';
+    chip.classList.toggle('on', value === (activeCat ?? ''));
+  });
+  document.querySelectorAll<HTMLElement>('#sortChips .fchip').forEach((chip) => {
+    chip.classList.toggle('on', chip.dataset.sort === sort);
+  });
+</script>

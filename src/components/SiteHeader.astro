@@ -1,0 +1,50 @@
+---
+import { CATEGORIES } from '../lib/tools';
+
+interface Props {
+  active?: 'home' | 'tools' | 'tool' | 'search' | 'favorites' | 'recent' | 'about' | '';
+}
+
+const { active = '' } = Astro.props;
+---
+
+<header class="site-head">
+  <div class="head-inner">
+    <a class="brand" href="/">
+      <span class="mark">WF</span>
+      码坊工具箱 <small>tools.codewf.com</small>
+    </a>
+    <nav class="nav" id="mainNav">
+      <a href="/tools" class:list={[{ on: active === 'tools' || active === 'tool' }]}>全部工具</a>
+      <button class="nav-btn" id="catDropBtn" aria-expanded="false">分类 <span class="caret">▾</span></button>
+      <a href="/favorites" class:list={[{ on: active === 'favorites' }]}>收藏 <span class="cnt" id="navFavCnt">0</span></a>
+      <a href="/recent" class:list={[{ on: active === 'recent' }]}>最近使用</a>
+      <a href="/about" class:list={[{ on: active === 'about' }]}>关于</a>
+      <a href="https://doc.codewf.com" target="_blank" rel="noopener">文档站 ↗</a>
+    </nav>
+    <div class="head-tools">
+      <button class="search" id="searchOpen" type="button" title="站内搜索（Ctrl K）">
+        <span aria-hidden="true">⌕</span> <span class="search-text">搜索工具…</span><kbd>Ctrl K</kbd>
+      </button>
+      <button class="icon-btn" id="themeBtn" type="button" title="切换亮/暗主题">☾</button>
+      <button class="nav-toggle icon-btn" id="navToggle" type="button" title="导航">☰</button>
+    </div>
+  </div>
+  <div class="nav-drawer" id="navDrawer">
+    <div class="wrap">
+      <a href="/tools">全部工具</a>
+      <a href="/favorites">收藏</a>
+      <a href="/recent">最近使用</a>
+      <a href="/about">关于</a>
+      <a href="https://doc.codewf.com" target="_blank" rel="noopener">文档站 ↗</a>
+    </div>
+  </div>
+  <div class="cat-drawer hidden" id="catMenu">
+    <div class="wrap fchips" id="catMenuInner">
+      <a class="fchip" href="/tools">全部 {CATEGORIES.length} 类</a>
+      {CATEGORIES.map((c) => (
+        <a class="fchip" href={`/tools?c=${c.slug}`}>{c.icon} {c.name}</a>
+      ))}
+    </div>
+  </div>
+</header>

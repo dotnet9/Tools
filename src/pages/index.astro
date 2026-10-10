@@ -1,0 +1,111 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ToolCard from '../components/ToolCard.astro';
+import { CATEGORIES, TOOLS, HOT, TOOL_MAP, TOTAL_CATEGORIES, TOTAL_TOOLS, toolsOfCategory } from '../lib/tools';
+import { liveCount } from '../tools/manifest';
+
+const hotTools = HOT.map((slug) => TOOL_MAP[slug]).filter(Boolean);
+const live = liveCount();
+---
+
+<BaseLayout title="码坊工具箱 · 浏览器里的开发者小工具" active="home">
+  <section class="hero">
+    <h1>浏览器里的 <em>开发者小工具</em></h1>
+    <p class="sub">
+      {TOTAL_CATEGORIES} 个分类、{TOTAL_TOOLS} 个工具，打开即用。全部计算在你的浏览器内完成 —— 不上传数据，不需要账号。
+    </p>
+    <form class="hero-search" id="heroForm" role="search">
+      <span class="ico" aria-hidden="true">⌕</span>
+      <input id="heroInput" type="search" name="q" placeholder="搜索工具，如 时间戳、JWT、Base64、icon ｜ Ctrl K" autocomplete="off" />
+      <button class="go" type="submit">搜索</button>
+    </form>
+    <div class="hero-hints">
+      <span><span class="kbd">/</span> 聚焦搜索</span>
+      <span><span class="kbd">Ctrl K</span> 快速打开</span>
+      <span><span class="kbd">f</span> 详情页收藏</span>
+    </div>
+    <div class="chip-row">
+      {hotTools.map((t) => (
+        <a class="chip" href={`/${t.slug}/`}><span class="dot"></span>{t.name}</a>
+      ))}
+    </div>
+    <div class="trust">
+      <span>🔒 <b>数据不上传</b></span>
+      <span>⚡ <b>无需登录</b></span>
+      <span>📴 <b>离线可用</b>（打开后）</span>
+      <span>🧩 <b>{live}</b> / {TOTAL_TOOLS} 个工具已可用</span>
+    </div>
+  </section>
+
+  <section class="section" id="homeRecent" hidden>
+    <div class="sec-head">
+      <h2>最近使用</h2><span class="en">Recent</span>
+      <p>打开过的工具会记在这台设备上（localStorage）</p>
+      <a class="more" href="/recent/">查看全部 →</a>
+    </div>
+    <div class="rail-card" id="homeRecentRail"></div>
+  </section>
+
+  <section class="section">
+    <div class="sec-head">
+      <h2>按分类浏览</h2><span class="en">Categories</span>
+      <p>点击分类磁贴进入列表，或直接搜索</p>
+      <a class="more" href="/tools/">全部工具 →</a>
+    </div>
+    <div class="cat-tiles">
+      {CATEGORIES.map((c) => (
+        <a class="cat-tile" href={`/tools?c=${c.slug}`} style={`--c:${c.color}`}>
+          <span class="top"><span class="em">{c.icon}</span><b>{c.name}</b></span>
+          <span class="en">{c.en}</span>
+          <p>{c.memo}</p>
+          <span class="n">{toolsOfCategory(c.slug).length} 个工具 →</span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  {CATEGORIES.map((c) => {
+    const list = toolsOfCategory(c.slug);
+    if (!list.length) return null;
+    return (
+      <section class="section">
+        <div class="sec-head">
+          <h2>{c.icon} {c.name}</h2><span class="en">{c.en}</span>
+          <p>{c.memo}</p>
+          <a class="more" href={`/tools?c=${c.slug}`}>查看全部 {list.length} 个 →</a>
+        </div>
+        <div class="tool-grid">
+          {list.slice(0, 4).map((t) => <ToolCard tool={t} />)}
+        </div>
+      </section>
+    );
+  })}
+
+  <section class="section">
+    <div class="sec-head">
+      <h2>全部工具</h2><span class="en">All {TOOLS.length}</span>
+      <p>也可以直接打开列表页，按分类或名称筛选</p>
+      <a class="more" href="/tools/">进入列表 →</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { getRecents } from '../lib/store';
+
+  const index = JSON.parse(document.getElementById('toolIndex')?.textContent ?? '[]') as { s: string; n: string }[];
+  const map = new Map(index.map((t) => [t.s, t]));
+  const rail = document.getElementById('homeRecentRail');
+  const section = document.getElementById('homeRecent');
+  const rows = getRecents()
+    .map((r) => map.get(r.slug))
+    .filter(Boolean)
+    .slice(0, 6) as { s: string; n: string }[];
+
+  if (rail && section && rows.length) {
+    section.hidden = false;
+    rail.innerHTML = rows
+      .map((t) => `<a class="rail-item" href="/${t.s}/"><b>${t.n.replace(/[&<>"]/g, '')}</b><span>/${t.s}</span></a>`)
+      .join('');
+  }
+</script>

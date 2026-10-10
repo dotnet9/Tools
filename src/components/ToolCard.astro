@@ -1,0 +1,27 @@
+---
+import { categoryOf, type Tool } from '../lib/tools';
+import { toolState, STATE_LABEL } from '../tools/manifest';
+
+interface Props {
+  tool: Tool;
+  /** 是否显示「收藏」星标（默认显示） */
+  fav?: boolean;
+}
+
+const { tool, fav = true } = Astro.props;
+const cat = categoryOf(tool);
+const state = toolState(tool.slug);
+const live = state === 'live';
+---
+
+<a class="tool-card" href={`/${tool.slug}/`} data-slug={tool.slug} style={`--c:${cat.color}`}>
+  {fav && (
+    <button class="star" type="button" data-fav={tool.slug} title="加入收藏">☆</button>
+  )}
+  <span class="ttl"><span class="dot"></span><b>{tool.name}</b></span>
+  <p>{tool.memo}</p>
+  <span class="foot">
+    <span class="slugname">/{tool.slug}</span>
+    {live ? <span class="badge-impl demo">可用</span> : <span class={`badge-impl ${state === 'pending' ? 'migrate' : 'todo'}`}>{STATE_LABEL[state]}</span>}
+  </span>
+</a>
