@@ -1,0 +1,19 @@
+{
+  "name": "codewf-tools",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "码坊工具箱（tools.codewf.com）：浏览器内即刻可用的开发者在线工具",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.2.1",
+    "astro": "^5.7.0"
+  }
+}

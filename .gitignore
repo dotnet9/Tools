@@ -426,3 +426,10 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+# ── 工具站（Astro）构建产物与依赖 ──
+dist/
+.astro/
+.source/
+node_modules/
+
