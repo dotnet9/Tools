@@ -1,0 +1,643 @@
+{
+  "$comment": "工具清单（单一事实源）：分类与工具的 slug/名称/描述。相当于原 Assets.Dotnet9/site/tools/tools.json 的迁移版；实现清单见 src/tools/registry.ts。",
+  "hot": [
+    "timestamp",
+    "json-prettify",
+    "base64-string-converter",
+    "jwt-parser",
+    "icon-converter",
+    "uuid-generator",
+    "regex-tester",
+    "qrcode-generator"
+  ],
+  "categories": [
+    {
+      "slug": "crypto",
+      "name": "加密与安全",
+      "en": "Crypto",
+      "icon": "🔐",
+      "color": "#8b5cf6",
+      "memo": "加密、安全和随机标识类在线工具。"
+    },
+    {
+      "slug": "converter",
+      "name": "转换器",
+      "en": "Converter",
+      "icon": "🔄",
+      "color": "#512bd4",
+      "memo": "格式、文本、日期和数值转换工具。"
+    },
+    {
+      "slug": "web",
+      "name": "网页工具",
+      "en": "Web",
+      "icon": "🌐",
+      "color": "#0078d4",
+      "memo": "Web 开发、URL、页面元信息和调试工具。"
+    },
+    {
+      "slug": "images-and-videos",
+      "name": "图像与视频",
+      "en": "Media",
+      "icon": "🖼️",
+      "color": "#038387",
+      "memo": "图片、二维码、图标和摄像头工具。"
+    },
+    {
+      "slug": "development",
+      "name": "开发工具",
+      "en": "Development",
+      "icon": "⌨️",
+      "color": "#b25f00",
+      "memo": "日常开发格式化、正则、权限和命令辅助工具。"
+    },
+    {
+      "slug": "network",
+      "name": "网络工具",
+      "en": "Network",
+      "icon": "🛰️",
+      "color": "#2563eb",
+      "memo": "IP、MAC 和网络地址处理工具。"
+    },
+    {
+      "slug": "math",
+      "name": "数学工具",
+      "en": "Math",
+      "icon": "🧮",
+      "color": "#7c3aed",
+      "memo": "计算、百分比、复利和 ETA 工具。"
+    },
+    {
+      "slug": "measurement",
+      "name": "计量工具",
+      "en": "Measurement",
+      "icon": "📏",
+      "color": "#0d9488",
+      "memo": "计时、温度和性能测量工具。"
+    },
+    {
+      "slug": "text",
+      "name": "文本工具",
+      "en": "Text",
+      "icon": "🔤",
+      "color": "#c2410c",
+      "memo": "文本生成、统计、对比和处理工具。"
+    },
+    {
+      "slug": "data",
+      "name": "数据工具",
+      "en": "Data",
+      "icon": "🗃️",
+      "color": "#4b5563",
+      "memo": "电话、IBAN 等结构化数据工具。"
+    }
+  ],
+  "tools": [
+    {
+      "slug": "token-generator",
+      "cat": "crypto",
+      "name": "随机 Token 生成器",
+      "memo": "按指定长度和字符集生成随机字符串，可用于临时令牌、测试密码和标识符。"
+    },
+    {
+      "slug": "hash-text",
+      "cat": "crypto",
+      "name": "文本哈希计算",
+      "memo": "对文本计算 MD5、SHA1、SHA256、SHA384、SHA512、SHA3 和 RIPEMD160 等哈希值。"
+    },
+    {
+      "slug": "bcrypt",
+      "cat": "crypto",
+      "name": "Bcrypt 哈希",
+      "memo": "使用 bcrypt 对文本进行哈希，并可与已有 bcrypt 哈希值进行校验。"
+    },
+    {
+      "slug": "uuid-generator",
+      "cat": "crypto",
+      "name": "UUID 生成器",
+      "memo": "生成 UUID v4 或 Nil UUID，适合测试数据、临时标识和分布式唯一 ID。"
+    },
+    {
+      "slug": "ulid-generator",
+      "cat": "crypto",
+      "name": "ULID 生成器",
+      "memo": "生成可按时间排序的 ULID，适合日志、事件和数据库标识符。"
+    },
+    {
+      "slug": "encryption",
+      "cat": "crypto",
+      "name": "文本加密/解密",
+      "memo": "使用 AES、TripleDES、RC4 或 Rabbit 等算法对文本进行加密和解密。"
+    },
+    {
+      "slug": "bip39-generator",
+      "cat": "crypto",
+      "name": "BIP39 助记词生成器",
+      "memo": "生成 BIP39 助记词短语，便于学习和测试助记词相关流程。"
+    },
+    {
+      "slug": "hmac-generator",
+      "cat": "crypto",
+      "name": "HMAC 生成器",
+      "memo": "使用密钥和指定哈希算法生成 HMAC 消息认证码。"
+    },
+    {
+      "slug": "rsa-key-pair-generator",
+      "cat": "crypto",
+      "name": "RSA 密钥对生成器",
+      "memo": "在浏览器中生成 RSA 私钥和公钥，并以 PEM 格式输出。"
+    },
+    {
+      "slug": "password-strength-analyser",
+      "cat": "crypto",
+      "name": "密码强度分析器",
+      "memo": "估算密码长度、字符类别、熵值和离线暴力破解所需时间。"
+    },
+    {
+      "slug": "pdf-signature-checker",
+      "cat": "crypto",
+      "name": "PDF 签名检查器",
+      "memo": "检查 PDF 文件中是否存在签名相关结构标记，辅助判断文件是否可能带签名。"
+    },
+    {
+      "slug": "date-converter",
+      "cat": "converter",
+      "name": "日期时间转换器",
+      "memo": "在时间戳、本地时间、ISO 时间和 UTC 时间之间快速转换。"
+    },
+    {
+      "slug": "base-converter",
+      "cat": "converter",
+      "name": "整数进制转换器",
+      "memo": "在二进制、八进制、十进制、十六进制和 36 进制之间转换整数。"
+    },
+    {
+      "slug": "roman-numeral-converter",
+      "cat": "converter",
+      "name": "罗马数字转换器",
+      "memo": "将阿拉伯数字转换为罗马数字，或将罗马数字解析为普通数字。"
+    },
+    {
+      "slug": "base64-string-converter",
+      "cat": "converter",
+      "name": "Base64 字符串编解码",
+      "memo": "将普通文本编码为 Base64，或将 Base64 解码回文本。"
+    },
+    {
+      "slug": "base64-file-converter",
+      "cat": "converter",
+      "name": "Base64 文件转换器",
+      "memo": "将上传的文件转换为 Base64 Data URL，便于嵌入或调试。"
+    },
+    {
+      "slug": "color-converter",
+      "cat": "converter",
+      "name": "颜色格式转换器",
+      "memo": "在 Hex、RGB 和 HSL 等常见颜色格式之间转换。"
+    },
+    {
+      "slug": "case-converter",
+      "cat": "converter",
+      "name": "命名格式转换器",
+      "memo": "将文本转换为 camelCase、PascalCase、snake_case、kebab-case 等格式。"
+    },
+    {
+      "slug": "text-to-nato-alphabet",
+      "cat": "converter",
+      "name": "文本转北约音标字母",
+      "memo": "把文本转换为北约音标字母表，适合口头拼读和信息确认。"
+    },
+    {
+      "slug": "text-to-binary",
+      "cat": "converter",
+      "name": "文本与 ASCII 二进制互转",
+      "memo": "将文本转换为 ASCII 二进制表示，或把二进制内容解码为文本。"
+    },
+    {
+      "slug": "text-to-unicode",
+      "cat": "converter",
+      "name": "文本与 Unicode 互转",
+      "memo": "将文本转换为 Unicode 转义形式，或把 Unicode 转义解析回文本。"
+    },
+    {
+      "slug": "yaml-to-json-converter",
+      "cat": "converter",
+      "name": "YAML 转 JSON",
+      "memo": "将 YAML 内容解析并转换为格式化 JSON。"
+    },
+    {
+      "slug": "yaml-to-toml",
+      "cat": "converter",
+      "name": "YAML 转 TOML",
+      "memo": "将 YAML 配置转换为 TOML 格式。"
+    },
+    {
+      "slug": "json-to-yaml-converter",
+      "cat": "converter",
+      "name": "JSON 转 YAML",
+      "memo": "将 JSON 内容解析并转换为 YAML。"
+    },
+    {
+      "slug": "json-to-toml",
+      "cat": "converter",
+      "name": "JSON 转 TOML",
+      "memo": "将 JSON 对象转换为 TOML 配置格式。"
+    },
+    {
+      "slug": "list-converter",
+      "cat": "converter",
+      "name": "列表转换器",
+      "memo": "对多行列表执行排序、反转、去重、大小写转换和 CSV 行转换等操作。"
+    },
+    {
+      "slug": "toml-to-json",
+      "cat": "converter",
+      "name": "TOML 转 JSON",
+      "memo": "解析 TOML 内容并转换为格式化 JSON。"
+    },
+    {
+      "slug": "toml-to-yaml",
+      "cat": "converter",
+      "name": "TOML 转 YAML",
+      "memo": "解析 TOML 内容并转换为 YAML。"
+    },
+    {
+      "slug": "xml-to-json",
+      "cat": "converter",
+      "name": "XML 转 JSON",
+      "memo": "解析 XML 内容并转换为 JSON 结构。"
+    },
+    {
+      "slug": "json-to-xml",
+      "cat": "converter",
+      "name": "JSON 转 XML",
+      "memo": "将 JSON 对象转换为 XML 字符串。"
+    },
+    {
+      "slug": "markdown-to-html",
+      "cat": "converter",
+      "name": "Markdown 转 HTML",
+      "memo": "将 Markdown 文本转换为 HTML，并提供即时预览。"
+    },
+    {
+      "slug": "timestamp",
+      "cat": "converter",
+      "name": "时间戳转换工具",
+      "memo": "在时间戳和常见日期格式之间互转，支持秒、毫秒和格式化显示。"
+    },
+    {
+      "slug": "url-encoder",
+      "cat": "web",
+      "name": "URL 编码/解码",
+      "memo": "对 URL 或 URL 组件进行百分号编码和解码。"
+    },
+    {
+      "slug": "html-entities",
+      "cat": "web",
+      "name": "HTML 实体转义",
+      "memo": "对 HTML 特殊字符进行转义或反转义。"
+    },
+    {
+      "slug": "url-parser",
+      "cat": "web",
+      "name": "URL 解析器",
+      "memo": "解析 URL 的协议、主机、端口、路径、查询参数和片段等组成部分。"
+    },
+    {
+      "slug": "device-information",
+      "cat": "web",
+      "name": "设备信息",
+      "memo": "查看当前浏览器、屏幕、语言、在线状态和视口等设备信息。"
+    },
+    {
+      "slug": "basic-auth-generator",
+      "cat": "web",
+      "name": "Basic Auth 生成器",
+      "memo": "根据用户名和密码生成 HTTP Basic Authorization 请求头。"
+    },
+    {
+      "slug": "og-meta-generator",
+      "cat": "web",
+      "name": "Open Graph Meta 生成器",
+      "memo": "生成网页标题、描述、Open Graph 和 Twitter Card 等 Meta 标签。"
+    },
+    {
+      "slug": "otp-generator",
+      "cat": "web",
+      "name": "OTP 动态验证码生成器",
+      "memo": "基于 Base32 密钥生成 TOTP 动态验证码，并显示剩余有效时间。"
+    },
+    {
+      "slug": "mime-types",
+      "cat": "web",
+      "name": "MIME 类型查询",
+      "memo": "根据文件扩展名查询 MIME 类型，或根据 MIME 类型反查常见扩展名。"
+    },
+    {
+      "slug": "jwt-parser",
+      "cat": "web",
+      "name": "JWT 解析器",
+      "memo": "解析 JWT 的 Header、Payload 和 Signature，便于调试令牌内容。"
+    },
+    {
+      "slug": "keycode-info",
+      "cat": "web",
+      "name": "键盘按键码查询",
+      "memo": "按下任意键后显示 key、code、keyCode 和修饰键状态。"
+    },
+    {
+      "slug": "slugify-string",
+      "cat": "web",
+      "name": "URL Slug 生成器",
+      "memo": "把标题或短语转换为适合 URL、文件名和锚点 ID 的 slug。"
+    },
+    {
+      "slug": "html-wysiwyg-editor",
+      "cat": "web",
+      "name": "HTML 所见即所得编辑器",
+      "memo": "在线编辑富文本内容，并实时查看生成的 HTML。"
+    },
+    {
+      "slug": "user-agent-parser",
+      "cat": "web",
+      "name": "User-Agent 解析器",
+      "memo": "从 User-Agent 字符串中识别浏览器、系统、设备类型等信息。"
+    },
+    {
+      "slug": "http-status-codes",
+      "cat": "web",
+      "name": "HTTP 状态码查询",
+      "memo": "查询常见 HTTP 状态码及其含义。"
+    },
+    {
+      "slug": "json-diff",
+      "cat": "web",
+      "name": "JSON 差异比较",
+      "memo": "比较两个 JSON 对象，并列出字段级差异。"
+    },
+    {
+      "slug": "safelink-decoder",
+      "cat": "web",
+      "name": "Safelink 解码器",
+      "memo": "从 Outlook Safelink 链接中提取真实目标地址。"
+    },
+    {
+      "slug": "slugify-string-translator",
+      "cat": "web",
+      "name": "标题转 URL 别名",
+      "memo": "将中文标题翻译并转换成适合文章链接和 SEO 的 slug。"
+    },
+    {
+      "slug": "qrcode-generator",
+      "cat": "images-and-videos",
+      "name": "二维码生成器",
+      "memo": "为文本或链接生成二维码，并支持前景色和背景色自定义。"
+    },
+    {
+      "slug": "wifi-qrcode-generator",
+      "cat": "images-and-videos",
+      "name": "WiFi 二维码生成器",
+      "memo": "根据 WiFi 名称、密码和加密方式生成快速连接二维码。"
+    },
+    {
+      "slug": "svg-placeholder-generator",
+      "cat": "images-and-videos",
+      "name": "SVG 占位图生成器",
+      "memo": "按尺寸、颜色和文本生成 SVG 占位图。"
+    },
+    {
+      "slug": "camera-recorder",
+      "cat": "images-and-videos",
+      "name": "摄像头拍照工具",
+      "memo": "调用浏览器摄像头进行预览，并可截取当前画面。"
+    },
+    {
+      "slug": "icon-converter",
+      "cat": "images-and-videos",
+      "name": "Icon 图标转换器",
+      "memo": "将图片转换为 ICO 图标，或按多尺寸导出图标压缩包。"
+    },
+    {
+      "slug": "nuoche",
+      "cat": "images-and-videos",
+      "name": "挪车码生成器",
+      "memo": "根据手机号生成可扫码联系车主的临时挪车二维码。"
+    },
+    {
+      "slug": "git-memo",
+      "cat": "development",
+      "name": "Git 速查表",
+      "memo": "整理常用 Git 命令，便于快速查阅提交、分支、变基和暂存操作。"
+    },
+    {
+      "slug": "random-port-generator",
+      "cat": "development",
+      "name": "随机端口生成器",
+      "memo": "生成 1024 到 65535 范围内的随机端口号。"
+    },
+    {
+      "slug": "crontab-generator",
+      "cat": "development",
+      "name": "Crontab 表达式生成器",
+      "memo": "组合分钟、小时、日期、月份和星期字段，生成 crontab 表达式。"
+    },
+    {
+      "slug": "json-prettify",
+      "cat": "development",
+      "name": "JSON 格式化",
+      "memo": "将 JSON 字符串格式化为易读的缩进结构。"
+    },
+    {
+      "slug": "json-minify",
+      "cat": "development",
+      "name": "JSON 压缩",
+      "memo": "移除 JSON 中多余空白，生成紧凑字符串。"
+    },
+    {
+      "slug": "json-to-csv",
+      "cat": "development",
+      "name": "JSON 转 CSV",
+      "memo": "把对象数组形式的 JSON 转换为 CSV 文本。"
+    },
+    {
+      "slug": "sql-prettify",
+      "cat": "development",
+      "name": "SQL 格式化",
+      "memo": "对 SQL 查询进行基础换行和缩进，提升可读性。"
+    },
+    {
+      "slug": "chmod-calculator",
+      "cat": "development",
+      "name": "Chmod 权限计算器",
+      "memo": "选择读、写、执行权限，生成八进制和符号形式的 chmod 命令。"
+    },
+    {
+      "slug": "docker-run-to-docker-compose-converter",
+      "cat": "development",
+      "name": "Docker Run 转 Compose",
+      "memo": "把常见 docker run 参数转换为 docker compose 服务片段。"
+    },
+    {
+      "slug": "xml-formatter",
+      "cat": "development",
+      "name": "XML 格式化",
+      "memo": "将 XML 字符串整理为缩进后的易读格式。"
+    },
+    {
+      "slug": "yaml-prettify",
+      "cat": "development",
+      "name": "YAML 格式化",
+      "memo": "解析并重新输出 YAML，使结构更清晰。"
+    },
+    {
+      "slug": "email-normalizer",
+      "cat": "development",
+      "name": "邮箱地址规范化",
+      "memo": "对邮箱地址做小写、去标签等规范化处理，支持 Gmail 点号规则。"
+    },
+    {
+      "slug": "regex-tester",
+      "cat": "development",
+      "name": "正则表达式测试器",
+      "memo": "输入正则表达式、标志和样本文本，查看匹配结果。"
+    },
+    {
+      "slug": "regex-memo",
+      "cat": "development",
+      "name": "正则表达式速查表",
+      "memo": "列出常用正则语法、字符类、量词和分组写法。"
+    },
+    {
+      "slug": "ipv4-subnet-calculator",
+      "cat": "network",
+      "name": "IPv4 子网计算器",
+      "memo": "根据 IPv4/CIDR 计算子网掩码、网络地址、广播地址和主机范围。"
+    },
+    {
+      "slug": "ipv4-address-converter",
+      "cat": "network",
+      "name": "IPv4 地址转换器",
+      "memo": "将 IPv4 地址转换为十进制、十六进制、二进制和 IPv6 映射形式。"
+    },
+    {
+      "slug": "ipv4-range-expander",
+      "cat": "network",
+      "name": "IPv4 范围计算器",
+      "memo": "根据起止 IPv4 地址计算地址数量和覆盖该范围的 CIDR。"
+    },
+    {
+      "slug": "mac-address-lookup",
+      "cat": "network",
+      "name": "MAC 地址厂商查询",
+      "memo": "根据 MAC 地址查询设备厂商信息。"
+    },
+    {
+      "slug": "mac-address-generator",
+      "cat": "network",
+      "name": "MAC 地址生成器",
+      "memo": "按前缀和数量生成随机 MAC 地址。"
+    },
+    {
+      "slug": "ipv6-ula-generator",
+      "cat": "network",
+      "name": "IPv6 ULA 生成器",
+      "memo": "生成符合 RFC4193 的本地唯一 IPv6 地址前缀。"
+    },
+    {
+      "slug": "math-evaluator",
+      "cat": "math",
+      "name": "数学表达式计算器",
+      "memo": "计算包含常见 Math 函数的数学表达式。"
+    },
+    {
+      "slug": "eta-calculator",
+      "cat": "math",
+      "name": "ETA 预计完成时间计算器",
+      "memo": "根据已完成量、总量和已耗时估算剩余时间与完成时刻。"
+    },
+    {
+      "slug": "percentage-calculator",
+      "cat": "math",
+      "name": "百分比计算器",
+      "memo": "计算占比、百分比对应值以及两个数之间的变化百分比。"
+    },
+    {
+      "slug": "compound-interest-calculator",
+      "cat": "math",
+      "name": "复利计算器",
+      "memo": "按年、月、日复利方式计算本金、利率和收益变化。"
+    },
+    {
+      "slug": "chronometer",
+      "cat": "measurement",
+      "name": "计时器",
+      "memo": "提供简单的开始、停止和重置计时功能。"
+    },
+    {
+      "slug": "temperature-converter",
+      "cat": "measurement",
+      "name": "温度转换器",
+      "memo": "在摄氏度、华氏度、开尔文和兰氏度之间转换。"
+    },
+    {
+      "slug": "benchmark-builder",
+      "cat": "measurement",
+      "name": "基准测试工具",
+      "memo": "在当前浏览器中多次运行 JavaScript 片段，统计最小、最大和平均耗时。"
+    },
+    {
+      "slug": "lorem-ipsum-generator",
+      "cat": "text",
+      "name": "占位文本生成器",
+      "memo": "按段落数量生成 Lorem ipsum 占位文本。"
+    },
+    {
+      "slug": "text-statistics",
+      "cat": "text",
+      "name": "文本统计",
+      "memo": "统计文本字符数、字节数、词数、行数、句子数和段落数。"
+    },
+    {
+      "slug": "emoji-picker",
+      "cat": "text",
+      "name": "Emoji 选择器",
+      "memo": "快速选择并复制常用 Emoji 表情。"
+    },
+    {
+      "slug": "string-obfuscator",
+      "cat": "text",
+      "name": "字符串脱敏工具",
+      "memo": "隐藏字符串中间部分，便于分享令牌、账号或其他敏感片段。"
+    },
+    {
+      "slug": "text-diff",
+      "cat": "text",
+      "name": "文本差异比较",
+      "memo": "逐行比较两段文本，显示新增和删除内容。"
+    },
+    {
+      "slug": "numeronym-generator",
+      "cat": "text",
+      "name": "数字缩写生成器",
+      "memo": "把 internationalization 转为 i18n 这类数字缩写形式。"
+    },
+    {
+      "slug": "ascii-text-drawer",
+      "cat": "text",
+      "name": "ASCII 文本绘制器",
+      "memo": "把输入文本转换为简单的 ASCII 风格排列。"
+    },
+    {
+      "slug": "phone-parser-and-formatter",
+      "cat": "data",
+      "name": "电话号码解析与格式化",
+      "memo": "提取电话号码中的数字，并生成近似 E.164 和分组显示形式。"
+    },
+    {
+      "slug": "iban-validator-and-parser",
+      "cat": "data",
+      "name": "IBAN 校验与解析",
+      "memo": "校验 IBAN 编号并解析国家代码、校验位和 BBAN。"
+    }
+  ]
+}
