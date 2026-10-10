@@ -436,3 +436,6 @@ node_modules/
 
 # 本地发布产物（dist 打包 zip）
 release/
+
+# 本机计划/评审草稿（不入库）
+.plan/
