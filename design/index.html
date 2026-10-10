@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  原型说明（码坊工具箱 · 在线工具站 tools.codewf.com）
+  · 一个单文件覆盖 7 类视图：首页 / 全部工具(分类) / 工具详情 / 搜索结果 / 收藏 / 最近使用 / 关于；
+  · 仅「Icon 图标转换器」为可交互实现，其余 90 个工具为占位详情（以「开发中 / 待迁移」标注）；
+  · 工具清单（10 分类 / 91 条）内嵌于页面末尾的 JSON 脚本块，来源 Assets.Dotnet9/site/tools/tools.json，
+    实施阶段迁入 Tools 仓库作为唯一事实源，由构建脚本生成、主站改为读取；
+  · 纯前端约定：全部计算在浏览器内完成，不上传任何数据，无账号、无后端、无外部请求；
+  · 页面顶部原型说明条（视图切换 / 假地址栏 / 重置本地数据）与页脚「设计原型」标注仅用于评审，实施时删除。
+-->
+<title>码坊工具箱 · 在线开发者工具（设计原型）</title>
+<meta name="description" content="码坊工具箱 tools.codewf.com：浏览器内即时可用的开发者在线工具，覆盖转换、编码、网络、文本等 10 大分类 91 个工具。">
+<style>
+:root{
+  --brand:#512bd4; --brand-deep:#3a1f9e; --brand-soft:rgba(81,43,212,.08);
+  --brand-line:rgba(81,43,212,.35); --brand-glow:rgba(81,43,212,.24);
+  --blue:#0078d4; --violet:#8b5cf6; --teal:#038387; --amber:#b25f00;
+  --bg:#ffffff; --bg-2:#faf9f8; --panel:#ffffff;
+  --text:#1b1b1f; --muted:#47474f; --text-3:#7c7c85;
+  --line:rgba(32,31,30,.12); --glass:rgba(32,31,30,.04);
+  --ink-panel:#1e1b2e; --soft:rgba(81,43,212,.06);
+  --shadow:0 8px 28px rgba(32,31,30,.08); --shadow-hover:0 18px 48px rgba(32,31,30,.14);
+  --radius:10px;
+  --mono:"Cascadia Code","JetBrains Mono",Consolas,"Courier New",monospace;
+  --sans:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --ok:#0f7b3f; --warn:#b25f00;
+}
+[data-theme="dark"]{
+  --bg:#161322; --bg-2:#1a1730; --panel:#201c36;
+  --text:#edeaf8; --muted:#b6b0d4; --text-3:#837da6;
+  --line:rgba(255,255,255,.12); --glass:rgba(255,255,255,.05);
+  --brand-soft:rgba(129,90,240,.14); --soft:rgba(129,90,240,.1);
+  --shadow:0 8px 28px rgba(0,0,0,.35); --shadow-hover:0 18px 48px rgba(0,0,0,.5);
+  --ok:#4ade80; --warn:#fbbf24;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.7;
+  background:
+    radial-gradient(900px 460px at 88% -140px, rgba(81,43,212,.10), transparent 65%),
+    radial-gradient(700px 400px at 6% -100px, rgba(0,120,212,.07), transparent 60%),
+    var(--bg);
+  position:relative;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(32,31,30,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(32,31,30,.025) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse 90% 55% at 50% 0%,#000 35%,transparent 100%);
+  -webkit-mask-image:radial-gradient(ellipse 90% 55% at 50% 0%,#000 35%,transparent 100%);
+}
+[data-theme="dark"] body::before{
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+}
+a{color:inherit;text-decoration:none}
+a,button,input,select,summary{transition:all 220ms cubic-bezier(.22,1,.36,1)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+img{display:block;max-width:100%}
+mark{background:var(--brand-soft);color:var(--brand);border-radius:3px;padding:0 2px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+.mono{font-family:var(--mono)}
+.muted{color:var(--text-3)}
+.hidden{display:none !important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+
+/* ── 原型说明条（评审辅助，非页面构图的一部分）─────────── */
+.proto-bar{
+  position:relative;z-index:60;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:7px 16px;font-size:12px;font-family:var(--mono);
+  background:var(--ink-panel);color:#d8d2f5;border-bottom:1px solid rgba(255,255,255,.12);
+}
+.proto-bar b{color:#fff;font-weight:700}
+.proto-bar .url{
+  display:inline-flex;align-items:center;gap:8px;padding:3px 10px;border-radius:6px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#fff;
+}
+.proto-bar .url span{opacity:.55}
+.proto-bar .views{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.proto-bar .views button{
+  padding:3px 9px;border-radius:6px;color:#cfc7f0;border:1px solid transparent;font-size:11.5px;
+}
+.proto-bar .views button:hover{background:rgba(255,255,255,.1);color:#fff}
+.proto-bar .views button.on{background:rgba(255,255,255,.16);color:#fff;border-color:rgba(255,255,255,.24)}
+.proto-bar .acts{display:flex;gap:6px}
+.proto-bar .acts button{padding:3px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.18);color:#e7e2ff;font-size:11.5px}
+.proto-bar .acts button:hover{background:rgba(255,255,255,.12)}
+
+/* ── 页头 ─────────────────────────── */
+.site-head{
+  position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+}
+.head-inner{max-width:1180px;margin:0 auto;padding:0 24px;height:62px;display:flex;align-items:center;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14.5px;white-space:nowrap}
+.brand .mark{
+  width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex:none;
+  background:linear-gradient(135deg,var(--brand),var(--violet));color:#fff;font-family:var(--mono);
+  font-size:15px;font-weight:800;box-shadow:0 4px 14px var(--brand-glow);
+}
+.brand small{color:var(--text-3);font-weight:500;font-size:12px}
+.nav{display:flex;gap:2px;margin-left:auto;align-items:center}
+.nav a,.nav .nav-btn{padding:7px 12px;border-radius:8px;color:var(--muted);font-size:13.5px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.nav a:hover,.nav .nav-btn:hover{color:var(--text);background:var(--glass)}
+.nav a.on,.nav .nav-btn.on{color:var(--brand);background:var(--brand-soft);font-weight:600}
+.nav .nav-btn .caret{font-size:10px;opacity:.7}
+.nav .cnt{font-family:var(--mono);font-size:10.5px;padding:0 5px;border-radius:999px;background:var(--glass);border:1px solid var(--line);color:var(--text-3)}
+.head-tools{display:flex;align-items:center;gap:10px}
+.search{display:flex;align-items:center;gap:8px;min-width:200px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--glass);color:var(--text-3);font-size:12.5px;cursor:pointer}
+.search:hover{border-color:var(--brand-line)}
+.search kbd{margin-left:auto;font-family:var(--mono);font-size:10.5px;padding:1px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg-2)}
+.icon-btn{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-size:15px}
+.icon-btn:hover{border-color:var(--brand-line);color:var(--brand)}
+.nav-drawer{
+  display:none;border-bottom:1px solid var(--line);background:var(--bg-2);
+}
+.nav-drawer.open{display:block}
+.nav-drawer .wrap{display:flex;flex-wrap:wrap;gap:6px;padding-top:10px;padding-bottom:10px}
+.nav-drawer a{padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);border:1px solid var(--line);background:var(--panel)}
+.nav-drawer a.on{color:var(--brand);border-color:var(--brand-line);background:var(--brand-soft);font-weight:600}
+
+/* ── 通用元件 ─────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;padding:0 18px;border-radius:8px;font-size:13.5px;font-weight:600;border:1px solid transparent;cursor:pointer;white-space:nowrap}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:0 4px 16px var(--brand-glow)}
+.btn-primary:hover{background:var(--brand-deep);transform:translateY(-1px)}
+.btn-ghost{border-color:var(--line);color:var(--text);background:var(--panel)}
+.btn-ghost:hover{border-color:var(--brand-line);color:var(--brand)}
+.btn-soft{background:var(--brand-soft);color:var(--brand)}
+.btn-soft:hover{background:color-mix(in srgb,var(--brand) 16%,transparent)}
+.btn-sm{height:30px;padding:0 12px;font-size:12.5px;border-radius:7px}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:600;background:var(--brand-soft);color:var(--brand)}
+.pill.blue{background:rgba(0,120,212,.1);color:var(--blue)}
+.pill.muted{background:var(--glass);color:var(--text-3);font-weight:500}
+.pill.ok{background:rgba(15,123,63,.1);color:var(--ok)}
+.pill.warn{background:rgba(178,95,0,.12);color:var(--warn)}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;background:var(--glass);color:var(--text-3);border:1px solid var(--line)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.kbd{font-family:var(--mono);font-size:10.5px;padding:1px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg-2);color:var(--text-3)}
+.section{padding:40px 0 0}
+.sec-head{display:flex;align-items:flex-end;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+.sec-head h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-.3px}
+.sec-head .en{color:var(--text-3);font-size:12.5px;font-weight:500;font-family:var(--mono)}
+.sec-head p{margin:4px 0 0;color:var(--text-3);font-size:13px;flex:1;min-width:200px}
+.sec-head .more{font-size:13px;color:var(--brand);font-weight:600;white-space:nowrap}
+.sec-head .more:hover{text-decoration:underline}
+
+/* ── 首页 Hero（搜索优先）──────────── */
+.hero{padding:52px 0 8px;text-align:center}
+.hero h1{margin:0 0 10px;font-size:34px;font-weight:800;letter-spacing:-.6px}
+.hero h1 em{font-style:normal;color:var(--brand)}
+.hero .sub{margin:0 auto 26px;max-width:640px;color:var(--muted);font-size:14.5px}
+.hero-search{
+  display:flex;align-items:center;gap:10px;max-width:680px;margin:0 auto;padding:0 16px;height:56px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);cursor:text;
+}
+.hero-search:hover,.hero-search:focus-within{border-color:var(--brand-line);box-shadow:var(--shadow-hover)}
+.hero-search .ico{color:var(--text-3);font-size:18px}
+.hero-search input{flex:1;height:100%;border:0;background:none;font-size:15px;outline:none}
+.hero-search .go{height:36px;padding:0 16px;border-radius:9px;background:var(--brand);color:#fff;font-size:13px;font-weight:600}
+.hero-search .go:hover{background:var(--brand-deep)}
+.hero-hints{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;font-size:12.5px;color:var(--text-3);flex-wrap:wrap}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:12.5px;color:var(--muted);cursor:pointer}
+.chip:hover{border-color:var(--brand-line);color:var(--brand);background:var(--brand-soft)}
+.chip .dot{width:6px;height:6px;border-radius:50%;background:var(--brand)}
+.trust{display:flex;justify-content:center;gap:20px;margin-top:26px;flex-wrap:wrap;font-size:12.5px;color:var(--text-3)}
+.trust span{display:inline-flex;align-items:center;gap:6px}
+.trust b{color:var(--muted);font-weight:600}
+
+/* ── 最近使用横排 ─────────────────── */
+.rail-card{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.rail-item{
+  flex:none;min-width:186px;padding:12px 14px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel);display:flex;flex-direction:column;gap:2px;
+}
+.rail-item:hover{border-color:var(--brand-line);box-shadow:var(--shadow)}
+.rail-item b{font-size:13.5px}
+.rail-item span{font-size:11.5px;color:var(--text-3);font-family:var(--mono)}
+
+/* ── 分类磁贴 ─────────────────────── */
+.cat-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(214px,1fr));gap:12px}
+.cat-tile{
+  display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:var(--radius);
+  border:1px solid var(--line);background:var(--panel);cursor:pointer;position:relative;overflow:hidden;
+}
+.cat-tile::after{content:"";position:absolute;left:0;top:0;width:3px;height:100%;background:var(--c,var(--brand));opacity:.85}
+.cat-tile:hover{border-color:var(--brand-line);box-shadow:var(--shadow-hover);transform:translateY(-2px)}
+.cat-tile .top{display:flex;align-items:center;gap:8px}
+.cat-tile .em{font-size:18px;line-height:1}
+.cat-tile b{font-size:14.5px}
+.cat-tile .en{font-family:var(--mono);font-size:11px;color:var(--text-3)}
+.cat-tile p{margin:0;font-size:12.5px;color:var(--text-3);min-height:34px}
+.cat-tile .n{font-family:var(--mono);font-size:11.5px;color:var(--c,var(--brand));font-weight:600}
+
+/* ── 工具卡片 ─────────────────────── */
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:12px}
+.tool-card{
+  position:relative;display:flex;flex-direction:column;gap:7px;padding:16px;border-radius:var(--radius);
+  border:1px solid var(--line);background:var(--panel);cursor:pointer;
+}
+.tool-card:hover{border-color:var(--brand-line);box-shadow:var(--shadow-hover);transform:translateY(-2px)}
+.tool-card .ttl{display:flex;align-items:center;gap:8px;padding-right:28px}
+.tool-card .dot{width:7px;height:7px;border-radius:50%;background:var(--c,var(--brand));flex:none}
+.tool-card b{font-size:14px;line-height:1.4}
+.tool-card p{margin:0;color:var(--text-3);font-size:12.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:38px}
+.tool-card .foot{display:flex;align-items:center;gap:8px;margin-top:2px;flex-wrap:wrap}
+.tool-card .slugname{font-family:var(--mono);font-size:11px;color:var(--text-3);background:var(--glass);border:1px solid var(--line);padding:1px 7px;border-radius:6px}
+.star{
+  position:absolute;right:12px;top:12px;width:24px;height:24px;display:grid;place-items:center;border-radius:6px;
+  color:var(--text-3);font-size:13px;
+}
+.star:hover{background:var(--glass);color:var(--brand)}
+.star.on{color:var(--brand)}
+.fav-flash{animation:favpop 420ms ease}
+@keyframes favpop{0%{transform:scale(.86)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+.badge-impl{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px}
+.badge-impl.demo{background:rgba(15,123,63,.12);color:var(--ok)}
+.badge-impl.migrate{background:rgba(0,120,212,.12);color:var(--blue)}
+.badge-impl.todo{background:var(--glass);color:var(--text-3);border:1px solid var(--line)}
+
+/* ── 筛选条 ───────────────────────── */
+.filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);margin-bottom:18px}
+.filter-bar .label{font-size:12.5px;color:var(--text-3)}
+.fchips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg-2);font-size:12.5px;color:var(--muted);cursor:pointer}
+.fchip:hover{border-color:var(--brand-line);color:var(--brand)}
+.fchip.on{background:var(--brand-soft);border-color:var(--brand-line);color:var(--brand);font-weight:600}
+.filter-bar .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.filter-bar select{height:30px;border-radius:7px;border:1px solid var(--line);background:var(--bg-2);padding:0 8px;font-size:12.5px}
+.result-count{font-family:var(--mono);font-size:12px;color:var(--text-3)}
+.group-head{display:flex;align-items:center;gap:10px;margin:26px 0 12px}
+.group-head h3{margin:0;font-size:16px;font-weight:700}
+.group-head .en{font-family:var(--mono);font-size:11.5px;color:var(--text-3)}
+.group-head .line{flex:1;height:1px;background:var(--line)}
+.group-head .c{font-family:var(--mono);font-size:11.5px;color:var(--text-3)}
+
+/* ── 页脚 ─────────────────────────── */
+footer{margin-top:56px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--bg-2) 70%,transparent)}
+.foot-inner{max-width:1180px;margin:0 auto;padding:22px 24px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--text-3);position:relative;z-index:1}
+.foot-inner a:hover{color:var(--brand)}
+/* ── 工具详情页 ───────────────────── */
+.crumb-bar{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-3);padding:18px 0 12px;flex-wrap:wrap}
+.crumb-bar a:hover{color:var(--brand)}
+.crumb-bar .sep{opacity:.6}
+.tool-head{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.tool-head .em{font-size:26px;line-height:1}
+.tool-head h1{margin:0 0 4px;font-size:26px;font-weight:800;letter-spacing:-.4px}
+.tool-head .desc{margin:0;color:var(--muted);font-size:14px;max-width:760px}
+.tool-head .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.tool-head .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.tool-surface{padding:0;overflow:hidden}
+.tool-surface .bar{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--bg-2);flex-wrap:wrap}
+.tool-surface .bar b{font-size:13.5px}
+.tool-surface .bar .right{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tool-surface .body{padding:20px}
+.ph-wrap{display:grid;grid-template-columns:1.25fr 1fr;gap:22px}
+.ph-list{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:13.5px}
+.ph-list li{margin-bottom:5px}
+.ph-note{margin-top:16px;padding:14px 16px;border-radius:10px;border:1px dashed var(--line);background:var(--bg-2);font-size:13px;color:var(--muted)}
+.ph-note b{color:var(--text)}
+.route-hint{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:6px 12px;border-radius:8px;background:var(--glass);border:1px solid var(--line);font-family:var(--mono);font-size:12px}
+.related{margin-top:30px}
+
+/* ── Icon 图标转换器（demo）─────────── */
+.ic-grid{display:grid;grid-template-columns:minmax(280px,1fr) minmax(240px,.9fr) minmax(300px,1.1fr);gap:20px;align-items:start}
+.ic-col{border:1px solid var(--line);border-radius:10px;background:var(--bg-2);padding:16px}
+.ic-col h4{margin:0 0 12px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.ic-col h4 .n{width:18px;height:18px;border-radius:50%;background:var(--brand);color:#fff;font-family:var(--mono);font-size:10.5px;display:grid;place-items:center;font-weight:700}
+.drop{
+  border:1.5px dashed var(--line);border-radius:10px;background:var(--panel);padding:22px 16px;text-align:center;cursor:pointer;
+}
+.drop:hover,.drop.over{border-color:var(--brand);background:var(--brand-soft)}
+.drop .big{font-size:26px;margin-bottom:6px}
+.drop p{margin:0;font-size:12.5px;color:var(--text-3)}
+.drop b{font-size:13.5px;color:var(--text)}
+.preview{margin-top:14px;display:none}
+.preview.show{display:block}
+.preview .thumb{
+  display:grid;place-items:center;height:150px;border-radius:10px;border:1px solid var(--line);overflow:hidden;
+  background-color:var(--panel);
+  background-image:linear-gradient(45deg,var(--glass) 25%,transparent 25%,transparent 75%,var(--glass) 75%),linear-gradient(45deg,var(--glass) 25%,transparent 25%,transparent 75%,var(--glass) 75%);
+  background-size:16px 16px;background-position:0 0,8px 8px;
+}
+.preview .thumb img{max-width:100%;max-height:148px;object-fit:contain}
+.preview .fmeta{margin-top:10px;font-size:12px;color:var(--text-3);font-family:var(--mono)}
+.preview .fmeta b{color:var(--text);font-weight:600}
+.field{margin-bottom:14px}
+.field>label{display:block;font-size:12.5px;font-weight:600;margin-bottom:7px}
+.size-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px}
+.size-grid label{
+  display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;
+  background:var(--panel);font-size:12px;cursor:pointer;font-family:var(--mono);
+}
+.size-grid label:hover{border-color:var(--brand-line)}
+.size-grid input{accent-color:var(--brand);margin:0}
+.mini-acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.mini-acts button{font-size:11.5px;padding:3px 9px;border-radius:6px;border:1px solid var(--line);color:var(--text-3)}
+.mini-acts button:hover{border-color:var(--brand-line);color:var(--brand)}
+.radio-row{display:flex;gap:8px;flex-wrap:wrap}
+.radio-row label{display:flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font-size:12.5px;cursor:pointer}
+.radio-row label.on{border-color:var(--brand-line);background:var(--brand-soft);color:var(--brand);font-weight:600}
+.radio-row input{accent-color:var(--brand);margin:0}
+.color-row{display:flex;align-items:center;gap:8px}
+.color-row input[type=color]{width:38px;height:30px;padding:2px;border:1px solid var(--line);border-radius:7px;background:var(--panel);cursor:pointer}
+.color-row .hex{font-family:var(--mono);font-size:12px;color:var(--text-3)}
+.out-empty{padding:26px 14px;text-align:center;color:var(--text-3);font-size:12.5px;border:1px dashed var(--line);border-radius:10px;background:var(--panel)}
+.out-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;margin-top:14px}
+.out-cell{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:10px;text-align:center}
+.out-cell .box{
+  height:74px;display:grid;place-items:center;border-radius:8px;margin-bottom:8px;
+  background-color:transparent;
+  background-image:linear-gradient(45deg,var(--glass) 25%,transparent 25%,transparent 75%,var(--glass) 75%),linear-gradient(45deg,var(--glass) 25%,transparent 25%,transparent 75%,var(--glass) 75%);
+  background-size:12px 12px;background-position:0 0,6px 6px;
+}
+.out-cell img{image-rendering:pixelated;max-width:100%;max-height:70px}
+.out-cell .nm{font-family:var(--mono);font-size:11px;color:var(--text-3)}
+.out-foot{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
+.progress{height:6px;border-radius:999px;background:var(--glass);overflow:hidden;margin-top:12px;display:none}
+.progress.show{display:block}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--violet));transition:width 200ms linear}
+.ic-tips{margin-top:16px;font-size:12px;color:var(--text-3)}
+.ic-tips li{margin-bottom:3px}
+.warn-line{margin-top:12px;padding:9px 12px;border-radius:8px;font-size:12.5px;background:rgba(178,95,0,.1);color:var(--warn);display:none}
+.warn-line.show{display:block}
+
+/* ── 列表页（收藏 / 最近）───────────── */
+.list-card{display:flex;align-items:center;gap:14px;padding:13px 16px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.list-card:hover{border-color:var(--brand-line);box-shadow:var(--shadow)}
+.list-card .dot{width:8px;height:8px;border-radius:50%;background:var(--c,var(--brand));flex:none}
+.list-card .info{flex:1;min-width:0}
+.list-card .info b{font-size:14px}
+.list-card .info p{margin:0;font-size:12.5px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-card time{font-family:var(--mono);font-size:11.5px;color:var(--text-3);white-space:nowrap}
+.stack{display:flex;flex-direction:column;gap:10px}
+
+/* ── 空态 ─────────────────────────── */
+.empty{padding:52px 20px;text-align:center;border:1px dashed var(--line);border-radius:var(--radius);background:var(--panel)}
+.empty .big{font-size:30px;margin-bottom:8px}
+.empty h3{margin:0 0 6px;font-size:17px}
+.empty p{margin:0 0 16px;color:var(--text-3);font-size:13px}
+.empty .acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* ── 关于页 ───────────────────────── */
+.about-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start}
+.about-grid h2{margin:0 0 10px;font-size:17px}
+.about-grid p{margin:0 0 12px;color:var(--muted);font-size:13.5px}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin:6px 0 0}
+.stat{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.stat b{display:block;font-family:var(--mono);font-size:18px}
+.stat span{font-size:12px;color:var(--text-3)}
+.link-list{display:flex;flex-direction:column;gap:8px}
+.link-list a{display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:13px}
+.link-list a:hover{border-color:var(--brand-line);color:var(--brand)}
+.link-list a small{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text-3)}
+
+/* ── 搜索浮层 ─────────────────────── */
+.overlay{position:fixed;inset:0;z-index:80;background:rgba(20,18,32,.42);backdrop-filter:blur(3px);display:none;padding-top:9vh}
+.overlay.open{display:block}
+.omni{max-width:640px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 30px 70px rgba(0,0,0,.35);overflow:hidden}
+.omni .in{display:flex;align-items:center;gap:10px;padding:0 16px;height:54px;border-bottom:1px solid var(--line)}
+.omni .in input{flex:1;height:100%;border:0;background:none;font-size:15px;outline:none}
+.omni .res{max-height:52vh;overflow-y:auto;padding:8px}
+.omni .row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;cursor:pointer}
+.omni .row:hover,.omni .row.sel{background:var(--brand-soft)}
+.omni .row .dot{width:7px;height:7px;border-radius:50%;background:var(--c,var(--brand));flex:none}
+.omni .row .t{flex:1;min-width:0}
+.omni .row .t b{font-size:13.5px;font-weight:600}
+.omni .row .t span{display:block;font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.omni .row .r{font-family:var(--mono);font-size:11px;color:var(--text-3)}
+.omni .foot{display:flex;gap:14px;padding:10px 16px;border-top:1px solid var(--line);background:var(--bg-2);font-size:11.5px;color:var(--text-3);flex-wrap:wrap}
+.omni .none{padding:26px 16px;text-align:center;color:var(--text-3);font-size:13px}
+
+/* ── toast ────────────────────────── */
+#toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,20px);z-index:90;opacity:0;pointer-events:none;transition:all 260ms ease}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast .box{background:var(--ink-panel);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;box-shadow:0 12px 30px rgba(0,0,0,.3)}
+
+/* ── 响应式 ───────────────────────── */
+@media (max-width:1200px){
+  .ic-grid{grid-template-columns:1fr 1fr}
+  .ic-grid .ic-col:nth-child(3){grid-column:1 / -1}
+}
+@media (max-width:1000px){
+  .ph-wrap{grid-template-columns:1fr}
+  .about-grid{grid-template-columns:1fr}
+}
+@media (max-width:860px){
+  .nav{display:none}
+  .nav-toggle{display:grid !important}
+  .search{min-width:0}
+  .search span{display:none}
+  .search kbd{display:none}
+  .ic-grid{grid-template-columns:1fr}
+  .tool-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+}
+@media (max-width:600px){
+  .wrap{padding:0 16px}
+  .head-inner{padding:0 16px;gap:10px}
+  .brand small{display:none}
+  .hero{padding:34px 0 4px}
+  .hero h1{font-size:24px}
+  .hero .sub{font-size:13.5px}
+  .hero-search{height:48px}
+  .tool-grid{grid-template-columns:1fr}
+  .cat-tiles{grid-template-columns:1fr 1fr}
+  .section{padding:30px 0 0}
+  .sec-head h2{font-size:19px}
+  .tool-head h1{font-size:21px}
+  .tool-head .acts{margin-left:0;width:100%}
+  .tool-head .acts .btn{flex:1}
+  .proto-bar{font-size:11px}
+  .proto-bar .views{width:100%;margin-left:0}
+}
+.nav-toggle{display:none;width:34px;height:34px;place-items:center;border:1px solid var(--line);border-radius:8px;color:var(--muted)}
+
+</style>
+</head>
+<body>
+
+<!-- ── 原型说明条（评审辅助，实施时删除）──────────────────── -->
+<div class="proto-bar">
+  <b>设计原型</b>
+  <span class="url" id="fakeUrl"><span>tools.codewf.com</span><b id="fakePath">/</b></span>
+  <span class="kbd">Ctrl K 搜索</span>
+  <span class="kbd">Alt 1–7 切视图</span>
+  <div class="views" id="protoViews"></div>
+  <div class="acts">
+    <button id="protoReset" title="清空收藏、最近使用与主题等本地数据">重置本地数据</button>
+  </div>
+</div>
+
+<!-- ── 页头 ─────────────────────────── -->
+<header class="site-head">
+  <div class="head-inner">
+    <a class="brand" href="#/" data-go="">
+      <span class="mark">WF</span>
+      码坊工具箱 <small>tools.codewf.com</small>
+    </a>
+    <nav class="nav" id="mainNav">
+      <a href="#/tools" data-go="tools">全部工具</a>
+      <button class="nav-btn" id="catDropBtn" aria-expanded="false">分类 <span class="caret">▾</span></button>
+      <a href="#/favorites" data-go="favorites">收藏 <span class="cnt" id="navFavCnt">0</span></a>
+      <a href="#/recent" data-go="recent">最近使用</a>
+      <a href="#/about" data-go="about">关于</a>
+      <a href="https://doc.codewf.com" target="_blank" rel="noopener">文档站 ↗</a>
+    </nav>
+    <div class="head-tools">
+      <div class="search" id="searchOpen" title="站内搜索（Ctrl K）">⌕ <span>搜索工具…</span><kbd>Ctrl K</kbd></div>
+      <button class="icon-btn" id="themeBtn" title="切换亮/暗主题">☾</button>
+      <button class="nav-toggle icon-btn" id="navToggle" title="导航">☰</button>
+    </div>
+  </div>
+  <div class="nav-drawer" id="navDrawer">
+    <div class="wrap">
+      <a href="#/tools" data-go="tools">全部工具</a>
+      <a href="#/favorites" data-go="favorites">收藏</a>
+      <a href="#/recent" data-go="recent">最近使用</a>
+      <a href="#/about" data-go="about">关于</a>
+      <a href="https://doc.codewf.com" target="_blank" rel="noopener">文档站 ↗</a>
+    </div>
+  </div>
+  <div class="cat-drawer hidden" id="catMenu" style="border-bottom:1px solid var(--line);background:var(--bg-2)">
+    <div class="wrap fchips" style="padding-top:10px;padding-bottom:10px" id="catMenuInner"></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ══ 视图：首页 ══════════════════════════════════════ -->
+  <section data-view="home">
+    <div class="hero">
+      <h1>浏览器里的 <em>开发者小工具</em></h1>
+      <p class="sub">10 个分类、91 个工具，打开即用。全部计算在你的浏览器内完成 —— 不上传数据，不需要账号。</p>
+      <div class="hero-search" id="heroSearch">
+        <span class="ico">⌕</span>
+        <input id="heroInput" type="text" placeholder="搜索工具，如 时间戳、JWT、Base64、icon ｜ Ctrl K" autocomplete="off">
+        <button class="go" id="heroGo">搜索</button>
+      </div>
+      <div class="hero-hints">
+        <span><span class="kbd">/</span> 聚焦搜索</span>
+        <span><span class="kbd">Ctrl K</span> 快速打开</span>
+        <span><span class="kbd">f</span> 详情页收藏</span>
+      </div>
+      <div class="chip-row" id="hotChips"></div>
+      <div class="trust">
+        <span>🔒 <b>数据不上传</b></span>
+        <span>⚡ <b>无需登录</b></span>
+        <span>📴 <b>离线可用</b>（打开后）</span>
+        <span>🧩 <b>91</b> 个工具 · <b>10</b> 个分类</span>
+      </div>
+    </div>
+
+    <section class="section hidden" id="homeRecent">
+      <div class="sec-head">
+        <h2>最近使用</h2><span class="en">Recent</span>
+        <p>打开过的工具会记在这台设备上（localStorage）</p>
+        <a class="more" href="#/recent" data-go="recent">查看全部 →</a>
+      </div>
+      <div class="rail-card" id="homeRecentRail"></div>
+    </section>
+
+    <section class="section">
+      <div class="sec-head">
+        <h2>按分类浏览</h2><span class="en">Categories</span>
+        <p>点击分类磁贴进入列表，或直接搜索</p>
+        <a class="more" href="#/tools" data-go="tools">全部工具 →</a>
+      </div>
+      <div class="cat-tiles" id="catTiles"></div>
+    </section>
+
+    <div id="homeGroups"></div>
+  </section>
+
+  <!-- ══ 视图：全部工具 / 分类 ═══════════════════════════ -->
+  <section data-view="tools" class="hidden">
+    <div class="crumb-bar"><a href="#/" data-go="">码坊工具箱</a><span class="sep">/</span><span id="toolsCrumb">全部工具</span></div>
+    <div class="sec-head">
+      <h2 id="toolsTitle">全部工具</h2><span class="en">All tools</span>
+      <p id="toolsSub">10 个分类 · 91 个工具</p>
+    </div>
+    <div class="filter-bar">
+      <span class="label">分类</span>
+      <div class="fchips" id="catChips"></div>
+      <div class="right">
+        <span class="result-count" id="toolsCount"></span>
+        <select id="sortSel" title="排序方式">
+          <option value="cat">按分类分组</option>
+          <option value="name">按名称排序</option>
+          <option value="new">已上线/待迁移优先</option>
+        </select>
+      </div>
+    </div>
+    <div id="toolsBody"></div>
+  </section>
+
+  <!-- ══ 视图：工具详情 ═════════════════════════════════ -->
+  <section data-view="tool" class="hidden">
+    <div class="crumb-bar">
+      <a href="#/" data-go="">码坊工具箱</a><span class="sep">/</span>
+      <a href="#/tools" data-go="tools">全部工具</a><span class="sep">/</span>
+      <a id="toolCrumbCat" href="#/tools?c=">分类</a><span class="sep">/</span>
+      <span id="toolCrumbName">工具</span>
+    </div>
+    <div class="tool-head">
+      <span class="em" id="toolEmoji">🧰</span>
+      <div style="flex:1;min-width:240px">
+        <h1 id="toolName">工具名</h1>
+        <p class="desc" id="toolDesc"></p>
+        <div class="meta" id="toolMeta"></div>
+      </div>
+      <div class="acts">
+        <button class="btn btn-ghost" id="toolFavBtn">☆ 收藏</button>
+        <button class="btn btn-ghost" id="toolLinkBtn">复制链接</button>
+        <a class="btn btn-ghost" id="toolIssueBtn" target="_blank" rel="noopener">提需求 ↗</a>
+      </div>
+    </div>
+    <div class="card tool-surface">
+      <div class="bar">
+        <b id="surfaceTitle">工具界面</b>
+        <span class="pill muted" id="surfaceState">开发中</span>
+        <div class="right" id="surfaceRight"></div>
+      </div>
+      <div class="body" id="surfaceBody"></div>
+    </div>
+    <section class="section related">
+      <div class="sec-head"><h2>同类工具</h2><span class="en">Related</span><p id="relatedSub"></p></div>
+      <div class="tool-grid" id="relatedGrid"></div>
+    </section>
+  </section>
+
+  <!-- ══ 视图：搜索结果 ═════════════════════════════════ -->
+  <section data-view="search" class="hidden">
+    <div class="crumb-bar"><a href="#/" data-go="">码坊工具箱</a><span class="sep">/</span><span>搜索</span></div>
+    <div class="sec-head">
+      <h2>搜索结果</h2><span class="en">Search</span>
+      <p id="searchSub"></p>
+    </div>
+    <div id="searchBody"></div>
+  </section>
+
+  <!-- ══ 视图：收藏 ═════════════════════════════════════ -->
+  <section data-view="favorites" class="hidden">
+    <div class="crumb-bar"><a href="#/" data-go="">码坊工具箱</a><span class="sep">/</span><span>收藏</span></div>
+    <div class="sec-head">
+      <h2>我的收藏</h2><span class="en">Favorites</span>
+      <p>保存在本机浏览器（localStorage），换设备不会同步</p>
+      <button class="more" id="favClear" style="border:0">清空收藏</button>
+    </div>
+    <div id="favBody"></div>
+  </section>
+
+  <!-- ══ 视图：最近使用 ═════════════════════════════════ -->
+  <section data-view="recent" class="hidden">
+    <div class="crumb-bar"><a href="#/" data-go="">码坊工具箱</a><span class="sep">/</span><span>最近使用</span></div>
+    <div class="sec-head">
+      <h2>最近使用</h2><span class="en">Recent</span>
+      <p>最多保留 12 条，重复打开会置顶</p>
+      <button class="more" id="recClear" style="border:0">清空记录</button>
+    </div>
+    <div id="recentBody"></div>
+  </section>
+
+  <!-- ══ 视图：关于 ═════════════════════════════════════ -->
+  <section data-view="about" class="hidden">
+    <div class="crumb-bar"><a href="#/" data-go="">码坊工具箱</a><span class="sep">/</span><span>关于</span></div>
+    <div class="sec-head"><h2>关于码坊工具箱</h2><span class="en">About</span><p>tools.codewf.com</p></div>
+    <div class="about-grid">
+      <div class="card">
+        <h2>浏览器内的开发者工具箱</h2>
+        <p>码坊工具箱把开发者日常高频的小工具集中到一个页面里：转换、编码、网络、文本、数学、数据……打开即用，不需要安装客户端，也不需要注册账号。</p>
+        <h2 style="margin-top:18px">数据不上传</h2>
+        <p>所有工具的计算都在你的浏览器内完成 —— 没有后端接口、没有账号体系，图片、令牌、日志等内容都不会离开这台设备。除「关于本工具」类的外部链接跳转外，页面本身不发起任何网络请求。</p>
+        <p class="muted" style="font-size:12.5px">注：个别依赖在线模型的工具（如「标题转 URL 别名」）在实施时会提供本地降级方案，无网络时仍可使用基础能力。</p>
+        <div class="stat-row">
+          <div class="stat"><b id="statCats">10</b><span>个分类</span></div>
+          <div class="stat"><b id="statTools">91</b><span>个工具</span></div>
+          <div class="stat"><b id="statLive">1</b><span>已可试用</span></div>
+          <div class="stat"><b id="statMigrate">3</b><span>待迁移</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:14px">
+          <h2>相关站点</h2>
+          <div class="link-list">
+            <a href="https://doc.codewf.com" target="_blank" rel="noopener">📚 文档站<small>doc.codewf.com</small></a>
+            <a href="https://codewf.com" target="_blank" rel="noopener">✍️ 博客主站<small>codewf.com</small></a>
+            <a href="https://github.com/dotnet9/Tools" target="_blank" rel="noopener">⌨️ 本站源码<small>dotnet9/Tools</small></a>
+            <a href="https://github.com/dotnet9/Assets.Dotnet9" target="_blank" rel="noopener">🗂️ 工具清单来源<small>Assets.Dotnet9</small></a>
+          </div>
+        </div>
+        <div class="card">
+          <h2>反馈与建议</h2>
+          <p style="font-size:13px">发现工具算错了，或者想要一个新工具？去仓库提 Issue，或者直接选一个「开发中」的工具页面点「提需求」。</p>
+          <a class="btn btn-soft btn-sm" href="https://github.com/dotnet9/Tools/issues" target="_blank" rel="noopener">提 Issue ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="foot-inner">
+    <span>© 2026 CodeWF 码坊 · 在线工具站 · <a href="https://doc.codewf.com" target="_blank" rel="noopener">文档站</a> · <a href="https://codewf.com" target="_blank" rel="noopener">博客</a></span>
+    <span id="footNote">本页为设计原型 · 当前视图对应线上地址 /</span>
+  </div>
+</footer>
+
+<!-- ── 搜索浮层 ─────────────────────── -->
+<div class="overlay" id="overlay">
+  <div class="omni" role="dialog" aria-label="站内搜索">
+    <div class="in">
+      <span class="ico muted">⌕</span>
+      <input id="omniInput" type="text" placeholder="搜索工具名、描述、slug 或分类…" autocomplete="off">
+      <span class="kbd">Esc</span>
+    </div>
+    <div class="res" id="omniRes"></div>
+    <div class="foot">
+      <span><span class="kbd">↑</span><span class="kbd">↓</span> 选择</span>
+      <span><span class="kbd">Enter</span> 打开</span>
+      <span><span class="kbd">Enter</span> 空结果时查看完整搜索页</span>
+      <span id="omniCount" style="margin-left:auto"></span>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><div class="box"></div></div>
+
+<script id="toolData" type="application/json">
+{
+  "hot": ["timestamp","json-prettify","base64-string-converter","jwt-parser","icon-converter","uuid-generator","regex-tester","qrcode-generator"],
+  "categories": [
+    {"slug":"crypto","name":"加密与安全","en":"Crypto","icon":"🔐","color":"#8b5cf6","memo":"加密、安全和随机标识类在线工具。"},
+    {"slug":"converter","name":"转换器","en":"Converter","icon":"🔄","color":"#512bd4","memo":"格式、文本、日期和数值转换工具。"},
+    {"slug":"web","name":"网页工具","en":"Web","icon":"🌐","color":"#0078d4","memo":"Web 开发、URL、页面元信息和调试工具。"},
+    {"slug":"images-and-videos","name":"图像与视频","en":"Media","icon":"🖼️","color":"#038387","memo":"图片、二维码、图标和摄像头工具。"},
+    {"slug":"development","name":"开发工具","en":"Development","icon":"⌨️","color":"#b25f00","memo":"日常开发格式化、正则、权限和命令辅助工具。"},
+    {"slug":"network","name":"网络工具","en":"Network","icon":"🛰️","color":"#2563eb","memo":"IP、MAC 和网络地址处理工具。"},
+    {"slug":"math","name":"数学工具","en":"Math","icon":"🧮","color":"#7c3aed","memo":"计算、百分比、复利和 ETA 工具。"},
+    {"slug":"measurement","name":"计量工具","en":"Measurement","icon":"📏","color":"#0d9488","memo":"计时、温度和性能测量工具。"},
+    {"slug":"text","name":"文本工具","en":"Text","icon":"🔤","color":"#c2410c","memo":"文本生成、统计、对比和处理工具。"},
+    {"slug":"data","name":"数据工具","en":"Data","icon":"🗃️","color":"#4b5563","memo":"电话、IBAN 等结构化数据工具。"}
+  ],
+  "tools": [
+    {"slug":"token-generator","name":"随机 Token 生成器","cat":"crypto","memo":"按指定长度和字符集生成随机字符串，可用于临时令牌、测试密码和标识符。"},
+    {"slug":"hash-text","name":"文本哈希计算","cat":"crypto","memo":"对文本计算 MD5、SHA1、SHA256、SHA384、SHA512、SHA3 和 RIPEMD160 等哈希值。"},
+    {"slug":"bcrypt","name":"Bcrypt 哈希","cat":"crypto","memo":"使用 bcrypt 对文本进行哈希，并可与已有 bcrypt 哈希值进行校验。"},
+    {"slug":"uuid-generator","name":"UUID 生成器","cat":"crypto","memo":"生成 UUID v4 或 Nil UUID，适合测试数据、临时标识和分布式唯一 ID。"},
+    {"slug":"ulid-generator","name":"ULID 生成器","cat":"crypto","memo":"生成可按时间排序的 ULID，适合日志、事件和数据库标识符。"},
+    {"slug":"encryption","name":"文本加密/解密","cat":"crypto","memo":"使用 AES、TripleDES、RC4 或 Rabbit 等算法对文本进行加密和解密。"},
+    {"slug":"bip39-generator","name":"BIP39 助记词生成器","cat":"crypto","memo":"生成 BIP39 助记词短语，便于学习和测试助记词相关流程。"},
+    {"slug":"hmac-generator","name":"HMAC 生成器","cat":"crypto","memo":"使用密钥和指定哈希算法生成 HMAC 消息认证码。"},
+    {"slug":"rsa-key-pair-generator","name":"RSA 密钥对生成器","cat":"crypto","memo":"在浏览器中生成 RSA 私钥和公钥，并以 PEM 格式输出。"},
+    {"slug":"password-strength-analyser","name":"密码强度分析器","cat":"crypto","memo":"估算密码长度、字符类别、熵值和离线暴力破解所需时间。"},
+    {"slug":"pdf-signature-checker","name":"PDF 签名检查器","cat":"crypto","memo":"检查 PDF 文件中是否存在签名相关结构标记，辅助判断文件是否可能带签名。"},
+
+    {"slug":"date-converter","name":"日期时间转换器","cat":"converter","memo":"在时间戳、本地时间、ISO 时间和 UTC 时间之间快速转换。"},
+    {"slug":"base-converter","name":"整数进制转换器","cat":"converter","memo":"在二进制、八进制、十进制、十六进制和 36 进制之间转换整数。"},
+    {"slug":"roman-numeral-converter","name":"罗马数字转换器","cat":"converter","memo":"将阿拉伯数字转换为罗马数字，或将罗马数字解析为普通数字。"},
+    {"slug":"base64-string-converter","name":"Base64 字符串编解码","cat":"converter","memo":"将普通文本编码为 Base64，或将 Base64 解码回文本。"},
+    {"slug":"base64-file-converter","name":"Base64 文件转换器","cat":"converter","memo":"将上传的文件转换为 Base64 Data URL，便于嵌入或调试。"},
+    {"slug":"color-converter","name":"颜色格式转换器","cat":"converter","memo":"在 Hex、RGB 和 HSL 等常见颜色格式之间转换。"},
+    {"slug":"case-converter","name":"命名格式转换器","cat":"converter","memo":"将文本转换为 camelCase、PascalCase、snake_case、kebab-case 等格式。"},
+    {"slug":"text-to-nato-alphabet","name":"文本转北约音标字母","cat":"converter","memo":"把文本转换为北约音标字母表，适合口头拼读和信息确认。"},
+    {"slug":"text-to-binary","name":"文本与 ASCII 二进制互转","cat":"converter","memo":"将文本转换为 ASCII 二进制表示，或把二进制内容解码为文本。"},
+    {"slug":"text-to-unicode","name":"文本与 Unicode 互转","cat":"converter","memo":"将文本转换为 Unicode 转义形式，或把 Unicode 转义解析回文本。"},
+    {"slug":"yaml-to-json-converter","name":"YAML 转 JSON","cat":"converter","memo":"将 YAML 内容解析并转换为格式化 JSON。"},
+    {"slug":"yaml-to-toml","name":"YAML 转 TOML","cat":"converter","memo":"将 YAML 配置转换为 TOML 格式。"},
+    {"slug":"json-to-yaml-converter","name":"JSON 转 YAML","cat":"converter","memo":"将 JSON 内容解析并转换为 YAML。"},
+    {"slug":"json-to-toml","name":"JSON 转 TOML","cat":"converter","memo":"将 JSON 对象转换为 TOML 配置格式。"},
+    {"slug":"list-converter","name":"列表转换器","cat":"converter","memo":"对多行列表执行排序、反转、去重、大小写转换和 CSV 行转换等操作。"},
+    {"slug":"toml-to-json","name":"TOML 转 JSON","cat":"converter","memo":"解析 TOML 内容并转换为格式化 JSON。"},
+    {"slug":"toml-to-yaml","name":"TOML 转 YAML","cat":"converter","memo":"解析 TOML 内容并转换为 YAML。"},
+    {"slug":"xml-to-json","name":"XML 转 JSON","cat":"converter","memo":"解析 XML 内容并转换为 JSON 结构。"},
+    {"slug":"json-to-xml","name":"JSON 转 XML","cat":"converter","memo":"将 JSON 对象转换为 XML 字符串。"},
+    {"slug":"markdown-to-html","name":"Markdown 转 HTML","cat":"converter","memo":"将 Markdown 文本转换为 HTML，并提供即时预览。"},
+    {"slug":"timestamp","name":"时间戳转换工具","cat":"converter","impl":"migrate","memo":"在时间戳和常见日期格式之间互转，支持秒、毫秒和格式化显示。"},
+
+    {"slug":"url-encoder","name":"URL 编码/解码","cat":"web","memo":"对 URL 或 URL 组件进行百分号编码和解码。"},
+    {"slug":"html-entities","name":"HTML 实体转义","cat":"web","memo":"对 HTML 特殊字符进行转义或反转义。"},
+    {"slug":"url-parser","name":"URL 解析器","cat":"web","memo":"解析 URL 的协议、主机、端口、路径、查询参数和片段等组成部分。"},
+    {"slug":"device-information","name":"设备信息","cat":"web","memo":"查看当前浏览器、屏幕、语言、在线状态和视口等设备信息。"},
+    {"slug":"basic-auth-generator","name":"Basic Auth 生成器","cat":"web","memo":"根据用户名和密码生成 HTTP Basic Authorization 请求头。"},
+    {"slug":"og-meta-generator","name":"Open Graph Meta 生成器","cat":"web","memo":"生成网页标题、描述、Open Graph 和 Twitter Card 等 Meta 标签。"},
+    {"slug":"otp-generator","name":"OTP 动态验证码生成器","cat":"web","memo":"基于 Base32 密钥生成 TOTP 动态验证码，并显示剩余有效时间。"},
+    {"slug":"mime-types","name":"MIME 类型查询","cat":"web","memo":"根据文件扩展名查询 MIME 类型，或根据 MIME 类型反查常见扩展名。"},
+    {"slug":"jwt-parser","name":"JWT 解析器","cat":"web","memo":"解析 JWT 的 Header、Payload 和 Signature，便于调试令牌内容。"},
+    {"slug":"keycode-info","name":"键盘按键码查询","cat":"web","memo":"按下任意键后显示 key、code、keyCode 和修饰键状态。"},
+    {"slug":"slugify-string","name":"URL Slug 生成器","cat":"web","impl":"migrate","memo":"把标题或短语转换为适合 URL、文件名和锚点 ID 的 slug。"},
+    {"slug":"html-wysiwyg-editor","name":"HTML 所见即所得编辑器","cat":"web","memo":"在线编辑富文本内容，并实时查看生成的 HTML。"},
+    {"slug":"user-agent-parser","name":"User-Agent 解析器","cat":"web","memo":"从 User-Agent 字符串中识别浏览器、系统、设备类型等信息。"},
+    {"slug":"http-status-codes","name":"HTTP 状态码查询","cat":"web","memo":"查询常见 HTTP 状态码及其含义。"},
+    {"slug":"json-diff","name":"JSON 差异比较","cat":"web","memo":"比较两个 JSON 对象，并列出字段级差异。"},
+    {"slug":"safelink-decoder","name":"Safelink 解码器","cat":"web","memo":"从 Outlook Safelink 链接中提取真实目标地址。"},
+    {"slug":"slugify-string-translator","name":"标题转 URL 别名","cat":"web","memo":"将中文标题翻译并转换成适合文章链接和 SEO 的 slug。"},
+
+    {"slug":"qrcode-generator","name":"二维码生成器","cat":"images-and-videos","memo":"为文本或链接生成二维码，并支持前景色和背景色自定义。"},
+    {"slug":"wifi-qrcode-generator","name":"WiFi 二维码生成器","cat":"images-and-videos","memo":"根据 WiFi 名称、密码和加密方式生成快速连接二维码。"},
+    {"slug":"svg-placeholder-generator","name":"SVG 占位图生成器","cat":"images-and-videos","memo":"按尺寸、颜色和文本生成 SVG 占位图。"},
+    {"slug":"camera-recorder","name":"摄像头拍照工具","cat":"images-and-videos","memo":"调用浏览器摄像头进行预览，并可截取当前画面。"},
+    {"slug":"icon-converter","name":"Icon 图标转换器","cat":"images-and-videos","impl":"demo","memo":"将图片转换为 ICO 图标，或按多尺寸导出图标压缩包。"},
+    {"slug":"nuoche","name":"挪车码生成器","cat":"images-and-videos","impl":"migrate","memo":"根据手机号生成可扫码联系车主的临时挪车二维码。"},
+
+    {"slug":"git-memo","name":"Git 速查表","cat":"development","memo":"整理常用 Git 命令，便于快速查阅提交、分支、变基和暂存操作。"},
+    {"slug":"random-port-generator","name":"随机端口生成器","cat":"development","memo":"生成 1024 到 65535 范围内的随机端口号。"},
+    {"slug":"crontab-generator","name":"Crontab 表达式生成器","cat":"development","memo":"组合分钟、小时、日期、月份和星期字段，生成 crontab 表达式。"},
+    {"slug":"json-prettify","name":"JSON 格式化","cat":"development","memo":"将 JSON 字符串格式化为易读的缩进结构。"},
+    {"slug":"json-minify","name":"JSON 压缩","cat":"development","memo":"移除 JSON 中多余空白，生成紧凑字符串。"},
+    {"slug":"json-to-csv","name":"JSON 转 CSV","cat":"development","memo":"把对象数组形式的 JSON 转换为 CSV 文本。"},
+    {"slug":"sql-prettify","name":"SQL 格式化","cat":"development","memo":"对 SQL 查询进行基础换行和缩进，提升可读性。"},
+    {"slug":"chmod-calculator","name":"Chmod 权限计算器","cat":"development","memo":"选择读、写、执行权限，生成八进制和符号形式的 chmod 命令。"},
+    {"slug":"docker-run-to-docker-compose-converter","name":"Docker Run 转 Compose","cat":"development","memo":"把常见 docker run 参数转换为 docker compose 服务片段。"},
+    {"slug":"xml-formatter","name":"XML 格式化","cat":"development","memo":"将 XML 字符串整理为缩进后的易读格式。"},
+    {"slug":"yaml-prettify","name":"YAML 格式化","cat":"development","memo":"解析并重新输出 YAML，使结构更清晰。"},
+    {"slug":"email-normalizer","name":"邮箱地址规范化","cat":"development","memo":"对邮箱地址做小写、去标签等规范化处理，支持 Gmail 点号规则。"},
+    {"slug":"regex-tester","name":"正则表达式测试器","cat":"development","memo":"输入正则表达式、标志和样本文本，查看匹配结果。"},
+    {"slug":"regex-memo","name":"正则表达式速查表","cat":"development","memo":"列出常用正则语法、字符类、量词和分组写法。"},
+
+    {"slug":"ipv4-subnet-calculator","name":"IPv4 子网计算器","cat":"network","memo":"根据 IPv4/CIDR 计算子网掩码、网络地址、广播地址和主机范围。"},
+    {"slug":"ipv4-address-converter","name":"IPv4 地址转换器","cat":"network","memo":"将 IPv4 地址转换为十进制、十六进制、二进制和 IPv6 映射形式。"},
+    {"slug":"ipv4-range-expander","name":"IPv4 范围计算器","cat":"network","memo":"根据起止 IPv4 地址计算地址数量和覆盖该范围的 CIDR。"},
+    {"slug":"mac-address-lookup","name":"MAC 地址厂商查询","cat":"network","memo":"根据 MAC 地址查询设备厂商信息。"},
+    {"slug":"mac-address-generator","name":"MAC 地址生成器","cat":"network","memo":"按前缀和数量生成随机 MAC 地址。"},
+    {"slug":"ipv6-ula-generator","name":"IPv6 ULA 生成器","cat":"network","memo":"生成符合 RFC4193 的本地唯一 IPv6 地址前缀。"},
+
+    {"slug":"math-evaluator","name":"数学表达式计算器","cat":"math","memo":"计算包含常见 Math 函数的数学表达式。"},
+    {"slug":"eta-calculator","name":"ETA 预计完成时间计算器","cat":"math","memo":"根据已完成量、总量和已耗时估算剩余时间与完成时刻。"},
+    {"slug":"percentage-calculator","name":"百分比计算器","cat":"math","memo":"计算占比、百分比对应值以及两个数之间的变化百分比。"},
+    {"slug":"compound-interest-calculator","name":"复利计算器","cat":"math","memo":"按年、月、日复利方式计算本金、利率和收益变化。"},
+
+    {"slug":"chronometer","name":"计时器","cat":"measurement","memo":"提供简单的开始、停止和重置计时功能。"},
+    {"slug":"temperature-converter","name":"温度转换器","cat":"measurement","memo":"在摄氏度、华氏度、开尔文和兰氏度之间转换。"},
+    {"slug":"benchmark-builder","name":"基准测试工具","cat":"measurement","memo":"在当前浏览器中多次运行 JavaScript 片段，统计最小、最大和平均耗时。"},
+
+    {"slug":"lorem-ipsum-generator","name":"占位文本生成器","cat":"text","memo":"按段落数量生成 Lorem ipsum 占位文本。"},
+    {"slug":"text-statistics","name":"文本统计","cat":"text","memo":"统计文本字符数、字节数、词数、行数、句子数和段落数。"},
+    {"slug":"emoji-picker","name":"Emoji 选择器","cat":"text","memo":"快速选择并复制常用 Emoji 表情。"},
+    {"slug":"string-obfuscator","name":"字符串脱敏工具","cat":"text","memo":"隐藏字符串中间部分，便于分享令牌、账号或其他敏感片段。"},
+    {"slug":"text-diff","name":"文本差异比较","cat":"text","memo":"逐行比较两段文本，显示新增和删除内容。"},
+    {"slug":"numeronym-generator","name":"数字缩写生成器","cat":"text","memo":"把 internationalization 转为 i18n 这类数字缩写形式。"},
+    {"slug":"ascii-text-drawer","name":"ASCII 文本绘制器","cat":"text","memo":"把输入文本转换为简单的 ASCII 风格排列。"},
+
+    {"slug":"phone-parser-and-formatter","name":"电话号码解析与格式化","cat":"data","memo":"提取电话号码中的数字，并生成近似 E.164 和分组显示形式。"},
+    {"slug":"iban-validator-and-parser","name":"IBAN 校验与解析","cat":"data","memo":"校验 IBAN 编号并解析国家代码、校验位和 BBAN。"}
+  ]
+}
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   码坊工具箱 · 单文件设计原型脚本
+   结构：数据准备 → 视图渲染 → 路由 → 搜索 → 收藏/最近 → Icon 转换器(demo) → 交互绑定
+   约定：无任何外部请求；本地数据键 codewf-tools.{theme,favorites,recent}
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+/* ── 1. 数据准备 ───────────────────────────────────────────── */
+const DATA = JSON.parse(document.getElementById('toolData').textContent);
+const CATS = DATA.categories;
+const TOOLS = DATA.tools;
+const CATMAP = {}; CATS.forEach(c => CATMAP[c.slug] = c);
+const TOOLMAP = {}; TOOLS.forEach(t => TOOLMAP[t.slug] = t);
+const IMPL_LABEL = { demo:'可试用', migrate:'待迁移', todo:'开发中' };
+const ICON_SIZES = [16,24,32,48,64,128,256];
+const LS = { theme:'codewf-tools.theme', fav:'codewf-tools.favorites', recent:'codewf-tools.recent' };
+
+const implOf = t => t.impl || 'todo';
+const catOf = t => CATMAP[t.cat] || { name:'未分类', en:'', color:'#512bd4', icon:'🧰', memo:'' };
+const toolsOfCat = slug => TOOLS.filter(t => t.cat === slug);
+const liveCount = () => TOOLS.filter(t => implOf(t) === 'demo').length;
+const migrateCount = () => TOOLS.filter(t => implOf(t) === 'migrate').length;
+
+/* ── 2. 本地状态 ───────────────────────────────────────────── */
+const readLS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+const writeLS = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+let FAVS = readLS(LS.fav, []);            // [slug]，最近收藏在前
+let RECENTS = readLS(LS.recent, []);      // [{slug, ts}]，最近在前
+const isFav = s => FAVS.includes(s);
+
+let VIEW = { name:'home', slug:null, cat:null, sort:'cat', q:'' };
+let KEYWORD = '';                          // 当前视图关键词（用于高亮）
+
+/* ── 3. 小工具函数 ─────────────────────────────────────────── */
+const $  = (s, r=document) => r.querySelector(s);
+const qa = (s, r=document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const tokens = q => String(q || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+function hl(text, q){
+  const out = esc(text);
+  const toks = tokens(q);
+  if(!toks.length) return out;
+  const safe = tok => tok.replace(/[.*+?^${}()|[\]\\]/g, c => '\\' + c);
+  return toks.reduce((acc, tok) => acc.replace(new RegExp('(' + safe(tok) + ')', 'gi'), '<mark>$1</mark>'), out);
+}
+function haystack(t){
+  const c = catOf(t);
+  return (t.name + ' ' + t.memo + ' ' + t.slug + ' ' + c.name + ' ' + (c.en || '')).toLowerCase();
+}
+const matchTool = (t, q) => { const hs = haystack(t); return tokens(q).every(tok => hs.includes(tok)); };
+const searchTools = q => TOOLS.filter(t => matchTool(t, q));
+function relTime(ts){
+  const d = Date.now() - ts;
+  if(d < 60e3) return '刚刚';
+  if(d < 3600e3) return Math.floor(d/60e3) + ' 分钟前';
+  if(d < 86400e3) return Math.floor(d/3600e3) + ' 小时前';
+  if(d < 7*86400e3) return Math.floor(d/86400e3) + ' 天前';
+  const dt = new Date(ts);
+  return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+}
+function fmtBytes(n){ return n < 1024 ? n + ' B' : (n/1024).toFixed(n < 10240 ? 1 : 0) + ' KB'; }
+function toast(msg){
+  const box = $('#toast'), inner = box.firstElementChild;
+  inner.textContent = msg; box.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => box.classList.remove('show'), 1800);
+}
+async function copyText(text, okMsg){
+  try { await navigator.clipboard.writeText(text); toast(okMsg || '已复制到剪贴板'); }
+  catch { toast('复制失败，请手动选择文本'); }
+}
+function downloadBlob(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/* ── 4. 收藏 / 最近使用 ────────────────────────────────────── */
+function toggleFav(slug, silent){
+  const i = FAVS.indexOf(slug);
+  if(i >= 0) FAVS.splice(i, 1); else FAVS.unshift(slug);
+  writeLS(LS.fav, FAVS);
+  if(!silent) toast(i >= 0 ? '已取消收藏' : '已加入收藏');
+  renderFavCounters(); paintFavButtons(slug);
+  if(VIEW.name === 'favorites') renderFavorites();
+  if(VIEW.name === 'tool') renderToolHead();
+}
+function paintFavButtons(slug){
+  qa('[data-fav="' + slug + '"]').forEach(b => {
+    b.classList.toggle('on', isFav(slug));
+    b.textContent = b.classList.contains('star') ? (isFav(slug) ? '★' : '☆') : null;
+    if(!b.classList.contains('star')) b.textContent = (isFav(slug) ? '★ 已收藏' : '☆ 收藏');
+    if(isFav(slug)){ b.classList.remove('fav-flash'); void b.offsetWidth; b.classList.add('fav-flash'); }
+  });
+}
+function renderFavCounters(){
+  $('#navFavCnt').textContent = FAVS.length;
+}
+function pushRecent(slug){
+  RECENTS = RECENTS.filter(r => r.slug !== slug);
+  RECENTS.unshift({ slug, ts: Date.now() });
+  RECENTS = RECENTS.slice(0, 12);
+  writeLS(LS.recent, RECENTS);
+}
+function clearRecents(){ RECENTS = []; writeLS(LS.recent, RECENTS); renderRecent(); renderHomeRecent(); toast('已清空最近使用'); }
+function clearFavs(){ FAVS = []; writeLS(LS.fav, FAVS); renderFavCounters(); renderFavorites(); renderToolHead(); toast('已清空收藏'); }
+
+/* ── 5. 卡片与列表片段 ─────────────────────────────────────── */
+function cardHTML(t){
+  const c = catOf(t), impl = implOf(t);
+  return '<article class="tool-card" data-slug="' + t.slug + '" style="--c:' + c.color + '" tabindex="0">'
+    + '<button class="star ' + (isFav(t.slug) ? 'on' : '') + '" data-fav="' + t.slug + '" title="' + (isFav(t.slug) ? '取消收藏' : '加入收藏') + '">' + (isFav(t.slug) ? '★' : '☆') + '</button>'
+    + '<div class="ttl"><span class="dot"></span><b>' + hl(t.name, KEYWORD) + '</b></div>'
+    + '<p>' + hl(t.memo, KEYWORD) + '</p>'
+    + '<div class="foot"><span class="slugname">/' + t.slug + '</span>'
+    + '<span class="badge-impl ' + impl + '">' + IMPL_LABEL[impl] + '</span></div>'
+    + '</article>';
+}
+function rowHTML(t, ts){
+  const c = catOf(t);
+  return '<div class="list-card" data-slug="' + t.slug + '" style="--c:' + c.color + '" tabindex="0">'
+    + '<span class="dot"></span>'
+    + '<div class="info"><b>' + esc(t.name) + '</b><p>' + esc(t.memo) + '</p></div>'
+    + '<span class="tag">' + esc(c.name) + '</span>'
+    + (ts ? '<time>' + relTime(ts) + '</time>' : '')
+    + '<button class="btn btn-ghost btn-sm" data-fav="' + t.slug + '">' + (isFav(t.slug) ? '★ 已收藏' : '☆ 收藏') + '</button>'
+    + '</div>';
+}
+const gridHTML = list => '<div class="tool-grid">' + list.map(cardHTML).join('') + '</div>';
+
+/* ── 6. 首页 ───────────────────────────────────────────────── */
+function renderHome(){
+  KEYWORD = '';
+  $('#hotChips').innerHTML = DATA.hot.map(s => {
+    const t = TOOLMAP[s]; if(!t) return '';
+    return '<button class="chip" data-slug="' + t.slug + '"><span class="dot" style="background:' + catOf(t).color + '"></span>' + esc(t.name) + '</button>';
+  }).join('');
+
+  $('#catTiles').innerHTML = CATS.map(c => {
+    const n = toolsOfCat(c.slug).length;
+    return '<div class="cat-tile" data-cat="' + c.slug + '" style="--c:' + c.color + '" tabindex="0">'
+      + '<div class="top"><span class="em">' + c.icon + '</span><b>' + esc(c.name) + '</b></div>'
+      + '<span class="en">' + esc(c.en) + '</span>'
+      + '<p>' + esc(c.memo) + '</p>'
+      + '<span class="n">' + n + ' 个工具 →</span>'
+      + '</div>';
+  }).join('');
+
+  $('#homeGroups').innerHTML = CATS.map(c => {
+    const list = toolsOfCat(c.slug);
+    if(!list.length) return '';
+    return '<section class="section">'
+      + '<div class="sec-head"><h2>' + c.icon + ' ' + esc(c.name) + '</h2><span class="en">' + esc(c.en) + '</span>'
+      + '<p>' + esc(c.memo) + '</p>'
+      + '<a class="more" href="#/tools?c=' + c.slug + '" data-cat="' + c.slug + '">查看全部 ' + list.length + ' 个 →</a></div>'
+      + gridHTML(list.slice(0, 4))
+      + '</section>';
+  }).join('');
+
+  renderHomeRecent();
+}
+function renderHomeRecent(){
+  const box = $('#homeRecent'), rail = $('#homeRecentRail');
+  const list = RECENTS.map(r => TOOLMAP[r.slug]).filter(Boolean).slice(0, 6);
+  box.classList.toggle('hidden', list.length === 0);
+  rail.innerHTML = list.map(t => '<div class="rail-item" data-slug="' + t.slug + '" tabindex="0">'
+    + '<b>' + esc(t.name) + '</b><span>/' + t.slug + '</span></div>').join('');
+}
+
+/* ── 7. 全部工具 / 分类 ────────────────────────────────────── */
+function renderTools(){
+  KEYWORD = '';
+  const active = VIEW.cat;
+  const sort = VIEW.sort;
+  const list = active ? toolsOfCat(active) : TOOLS;
+  const c = active ? CATMAP[active] : null;
+
+  $('#toolsCrumb').textContent = c ? '全部工具 / ' + c.name : '全部工具';
+  $('#toolsTitle').textContent = c ? c.icon + ' ' + c.name : '全部工具';
+  $('#toolsSub').textContent = (c ? esc(c.memo) + ' · ' : '') + '共 ' + list.length + ' 个工具';
+  $('#toolsCount').textContent = list.length + ' 个结果';
+
+  $('#catChips').innerHTML = '<button class="fchip ' + (!active ? 'on' : '') + '" data-cat="">全部 ' + TOOLS.length + '</button>'
+    + CATS.map(x => '<button class="fchip ' + (active === x.slug ? 'on' : '') + '" data-cat="' + x.slug + '">'
+        + x.icon + ' ' + esc(x.name) + ' ' + toolsOfCat(x.slug).length + '</button>').join('');
+  $('#sortSel').value = sort;
+
+  const rank = t => ({ demo:0, migrate:1, todo:2 })[implOf(t)];
+  if(sort === 'name'){
+    const sorted = list.slice().sort((a,b) => a.name.localeCompare(b.name, 'zh-Hans-CN'));
+    $('#toolsBody').innerHTML = gridHTML(sorted);
+  } else if(sort === 'new'){
+    const sorted = list.slice().sort((a,b) => rank(a) - rank(b) || CATS.findIndex(x => x.slug === a.cat) - CATS.findIndex(x => x.slug === b.cat));
+    $('#toolsBody').innerHTML = '<div class="group-head"><h3>按状态排序</h3><span class="en">Live first</span><span class="line"></span><span class="c">' + sorted.length + ' 个</span></div>' + gridHTML(sorted);
+  } else {
+    const cats = active ? [CATMAP[active]] : CATS;
+    $('#toolsBody').innerHTML = cats.map(x => {
+      const sub = toolsOfCat(x.slug);
+      if(!sub.length) return '';
+      return '<div class="group-head"><h3>' + x.icon + ' ' + esc(x.name) + '</h3><span class="en">' + esc(x.en) + '</span>'
+        + '<span class="line"></span><span class="c">' + sub.length + ' 个 · ' + esc(x.memo) + '</span></div>' + gridHTML(sub);
+    }).join('');
+  }
+}
+
+/* ── 8. 搜索结果 ───────────────────────────────────────────── */
+function renderSearch(){
+  const q = VIEW.q; KEYWORD = q;
+  const list = q ? searchTools(q) : [];
+  $('#searchSub').textContent = q
+    ? '关键词「' + q + '」命中 ' + list.length + ' 个工具'
+    : '输入关键词开始搜索（工具名 / 描述 / slug / 分类）';
+
+  if(!q){
+    $('#searchBody').innerHTML = '<div class="empty"><div class="big">⌕</div><h3>输入关键词开始搜索</h3>'
+      + '<p>试试「时间戳」「jwt」「base64」「icon」，或直接浏览全部工具</p>'
+      + '<div class="acts"><a class="btn btn-primary" href="#/tools" data-go="tools">浏览全部工具</a>'
+      + '<button class="btn btn-ghost" data-hot="1">看热门工具</button></div></div>';
+    return;
+  }
+  if(!list.length){
+    $('#searchBody').innerHTML = '<div class="empty"><div class="big">🫧</div><h3>没有找到「' + esc(q) + '」</h3>'
+      + '<p>换个关键词试试，或者告诉我们你需要这个工具</p>'
+      + '<div class="acts"><a class="btn btn-primary" href="#/tools" data-go="tools">浏览全部工具</a>'
+      + '<a class="btn btn-ghost" target="_blank" rel="noopener" href="' + issueUrl('提议新工具：' + q) + '">提需求 ↗</a></div></div>'
+      + '<div class="sec-head" style="margin-top:26px"><h2>热门工具</h2><span class="en">Hot</span><p>也许你要找的在里面</p></div>'
+      + gridHTML(DATA.hot.map(s => TOOLMAP[s]).filter(Boolean).slice(0, 6));
+    return;
+  }
+  const cats = [...new Set(list.map(t => t.cat))].map(s => CATMAP[s].name);
+  $('#searchBody').innerHTML = '<div class="filter-bar"><span class="label">命中分类</span>'
+    + '<div class="fchips">' + cats.map(n => '<span class="fchip">' + esc(n) + '</span>').join('') + '</div>'
+    + '<div class="right"><span class="result-count">' + list.length + ' 个结果</span>'
+    + '<button class="btn btn-ghost btn-sm" id="searchAllBtn">只看可试用</button></div></div>'
+    + gridHTML(list);
+  const btn = $('#searchAllBtn');
+  if(btn) btn.onclick = () => { const live = list.filter(t => implOf(t) === 'demo'); $('#searchBody').innerHTML = gridHTML(live.length ? live : list); };
+}
+
+/* ── 9. 收藏页 / 最近使用页 ────────────────────────────────── */
+function renderFavorites(){
+  const list = FAVS.map(s => TOOLMAP[s]).filter(Boolean);
+  if(!list.length){
+    $('#favBody').innerHTML = '<div class="empty"><div class="big">☆</div><h3>还没有收藏工具</h3>'
+      + '<p>在工具卡片右上角点 ☆ 即可收藏，收藏会保存在这台设备上</p>'
+      + '<div class="acts"><a class="btn btn-primary" href="#/tools" data-go="tools">去浏览全部工具</a></div></div>';
+    return;
+  }
+  $('#favBody').innerHTML = '<div class="stack">' + list.map(t => rowHTML(t)).join('') + '</div>';
+}
+function renderRecent(){
+  const list = RECENTS.map(r => ({ t: TOOLMAP[r.slug], ts: r.ts })).filter(x => x.t);
+  if(!list.length){
+    $('#recentBody').innerHTML = '<div class="empty"><div class="big">🕘</div><h3>还没有使用记录</h3>'
+      + '<p>打开任意工具后会记在这台设备上，方便下次快速回到</p>'
+      + '<div class="acts"><a class="btn btn-primary" href="#/tools" data-go="tools">去浏览全部工具</a></div></div>';
+    return;
+  }
+  $('#recentBody').innerHTML = '<div class="stack">' + list.map(x => rowHTML(x.t, x.ts)).join('') + '</div>';
+}
+
+/* ── 10. 工具详情 ──────────────────────────────────────────── */
+const issueUrl = (title, body) => 'https://github.com/dotnet9/Tools/issues/new?title=' + encodeURIComponent(title) + (body ? '&body=' + encodeURIComponent(body) : '');
+
+function renderTool(){
+  const t = TOOLMAP[VIEW.slug];
+  if(!t) return;
+  KEYWORD = '';
+  const c = catOf(t), impl = implOf(t);
+
+  $('#toolCrumbCat').textContent = c.name;
+  $('#toolCrumbCat').dataset.cat = c.slug;
+  $('#toolCrumbCat').setAttribute('href', '#/tools?c=' + c.slug);
+  $('#toolCrumbName').textContent = t.name;
+  $('#toolEmoji').textContent = c.icon;
+  $('#toolName').textContent = t.name;
+  $('#toolDesc').textContent = t.memo;
+  $('#toolMeta').innerHTML = '<span class="pill" style="background:' + c.color + '22;color:' + c.color + '">' + c.icon + ' ' + esc(c.name) + '</span>'
+    + '<span class="slugname" style="font-family:var(--mono);font-size:11.5px;color:var(--text-3)">tools.codewf.com/' + t.slug + '</span>'
+    + '<span class="pill ' + (impl === 'demo' ? 'ok' : impl === 'migrate' ? 'blue' : 'muted') + '">' + IMPL_LABEL[impl] + '</span>'
+    + '<span class="tag">' + (impl === 'todo' ? '尚未实现' : '已有实现，待迁入本站') + '</span>';
+  $('#toolIssueBtn').href = issueUrl('工具需求：' + t.name, '工具页面：/' + t.slug + '\n分类：' + c.name + '\n\n期望能力：\n');
+
+  $('#surfaceTitle').textContent = t.name + ' · 工具界面';
+  $('#surfaceState').className = 'pill ' + (impl === 'demo' ? 'ok' : impl === 'migrate' ? 'blue' : 'muted');
+  $('#surfaceState').textContent = impl === 'demo' ? '可试用' : IMPL_LABEL[impl];
+  $('#surfaceRight').innerHTML = impl === 'demo'
+    ? '<span class="pill muted">纯前端本地处理</span>'
+    : '<span class="pill muted">原型未实现交互</span><button class="btn btn-ghost btn-sm" data-copyroute="' + t.slug + '">复制路由</button>';
+
+  const body = $('#surfaceBody');
+  if(t.slug === 'icon-converter'){ body.innerHTML = icHTML(); icBind(); renderToolHead(); }
+  else { body.innerHTML = placeholderHTML(t, impl); renderToolHead(); }
+
+  const rel = toolsOfCat(c.slug).filter(x => x.slug !== t.slug);
+  $('#relatedSub').textContent = c.name + ' · 共 ' + rel.length + ' 个同类工具';
+  $('#relatedGrid').innerHTML = rel.slice(0, 6).length ? rel.slice(0, 6).map(cardHTML).join('')
+    : '<div class="empty" style="grid-column:1/-1"><p>这个分类下暂时没有别的工具</p></div>';
+}
+function renderToolHead(){
+  const t = TOOLMAP[VIEW.slug];
+  if(!t) return;
+  const b = $('#toolFavBtn');
+  b.textContent = isFav(t.slug) ? '★ 已收藏' : '☆ 收藏';
+  b.classList.toggle('btn-soft', isFav(t.slug));
+  b.classList.toggle('btn-ghost', !isFav(t.slug));
+}
+function placeholderHTML(t, impl){
+  const points = t.memo.split(/[，、；;]/).map(s => s.trim()).filter(s => s.length > 1).slice(0, 4);
+  const state = impl === 'migrate'
+    ? '这个工具在主站已有实现，会随「在线工具站」一起迁到本站，并按纯前端方式重写（无后端调用）。'
+    : '这个工具已在清单中登记，界面与实现尚未开始。可以先去仓库提需求，说明你希望的能力与使用场景。';
+  return '<div class="ph-wrap">'
+    + '<div>'
+    +   '<h3 style="margin:0 0 6px;font-size:16px">开发状态</h3>'
+    +   '<p class="muted" style="margin:0">' + state + '</p>'
+    +   '<h3 style="margin:18px 0 6px;font-size:16px">计划能力</h3>'
+    +   '<ul class="ph-list">' + points.map(p => '<li>' + esc(p) + '</li>').join('') + '</ul>'
+    +   '<div class="route-hint">线上地址 <b>/' + t.slug + '</b> · 分类 ' + esc(catOf(t).name) + '</div>'
+    +   '<div class="ph-note"><b>实现约定：</b>纯浏览器内计算，不上传输入内容；无账号、无后端；如需网络能力（如在线翻译）会提供本地降级。</div>'
+    + '</div>'
+    + '<div>'
+    +   '<h3 style="margin:0 0 6px;font-size:16px">界面草案</h3>'
+    +   '<div class="out-empty" style="text-align:left;margin-bottom:10px;padding:16px"><b style="color:var(--text)">输入区</b>'
+    +   '<p class="muted" style="margin:4px 0 0;font-size:12.5px">文本 / 文件 / 参数表单（按工具类型）</p></div>'
+    +   '<div class="out-empty" style="text-align:left;padding:16px"><b style="color:var(--text)">结果区</b>'
+    +   '<p class="muted" style="margin:4px 0 0;font-size:12.5px">结果展示 + 复制 / 下载 / 清空</p></div>'
+    +   '<div class="mini-acts"><button data-hot="1">看可试用的工具</button><a class="btn btn-soft btn-sm" style="height:auto" target="_blank" rel="noopener" href="' + issueUrl('工具需求：' + t.name) + '">提需求 ↗</a></div>'
+    + '</div>'
+    + '</div>';
+}
+
+/* ── 11. Icon 图标转换器（本原型唯一完整实现）─────────────── */
+const IC = {
+  img:null, name:'', size:0, w:0, h:0,
+  sizes:new Set([16,32,48,256]),
+  bg:'transparent', color:'#ffffff', out:'ico',
+  results:[], warn:''
+};
+function icSummaryText(){
+  const s = [...IC.sizes].sort((a,b) => a-b);
+  if(!IC.img) return '先选择一张图片，再生成图标';
+  if(!s.length) return '未选择任何尺寸（生成按钮已禁用）';
+  return '已选 ' + s.length + ' 个尺寸：' + s.join(' / ') + ' · 输出 ' + (IC.out === 'ico' ? '单个 .ico（多尺寸合成）' : 'PNG 尺寸包');
+}
+function icHTML(){
+  const s = [...IC.sizes].sort((a,b) => a-b);
+  const canRun = !!IC.img && s.length > 0;
+  return '<div class="ic-grid">'
+  + '<div class="ic-col">'
+  +   '<h4><span class="n">1</span>选择图片</h4>'
+  +   '<div class="drop" id="icDrop"><div class="big">🖼️</div><b>拖放图片到这里</b>'
+  +     '<p>或点击选择 · PNG / JPG / WebP / GIF 首帧（建议 ≤ 10 MB）</p>'
+  +     '<input type="file" id="icFile" accept="image/*" class="hidden"></div>'
+  +   '<div class="preview ' + (IC.img ? 'show' : '') + '" id="icPreview">'
+  +     '<div class="thumb"><img id="icThumb" alt="已选图片预览"></div>'
+  +     '<div class="fmeta" id="icMeta">' + esc(IC.name) + ' · ' + IC.w + '×' + IC.h + ' · ' + fmtBytes(IC.size) + '</div>'
+  +     '<div class="mini-acts"><button id="icReselect">重新选择</button><button id="icRemove">移除</button></div>'
+  +   '</div>'
+  +   '<div class="warn-line ' + (IC.warn ? 'show' : '') + '" id="icWarn">' + esc(IC.warn) + '</div>'
+  +   '<ul class="ic-tips"><li>图片只在你的浏览器里处理，不会上传。</li><li>透明 PNG 建议保留「透明」背景。</li></ul>'
+  + '</div>'
+  + '<div class="ic-col">'
+  +   '<h4><span class="n">2</span>输出尺寸</h4>'
+  +   '<div class="size-grid">' + ICON_SIZES.map(n => '<label><input type="checkbox" data-size="' + n + '" ' + (IC.sizes.has(n) ? 'checked' : '') + '>' + n + '</label>').join('') + '</div>'
+  +   '<div class="mini-acts"><button data-sizes="all">全选</button><button data-sizes="common">常用 16/32/48/256</button><button data-sizes="none">全不选</button></div>'
+  +   '<h4 style="margin-top:18px"><span class="n">3</span>背景与输出</h4>'
+  +   '<div class="radio-row">'
+  +     '<label class="' + (IC.bg === 'transparent' ? 'on' : '') + '"><input type="radio" name="icbg" value="transparent" ' + (IC.bg === 'transparent' ? 'checked' : '') + '>透明</label>'
+  +     '<label class="' + (IC.bg === 'white' ? 'on' : '') + '"><input type="radio" name="icbg" value="white" ' + (IC.bg === 'white' ? 'checked' : '') + '>白色</label>'
+  +     '<label class="' + (IC.bg === 'custom' ? 'on' : '') + '"><input type="radio" name="icbg" value="custom" ' + (IC.bg === 'custom' ? 'checked' : '') + '>自定义</label>'
+  +   '</div>'
+  +   '<div class="color-row" style="margin-top:10px"><input type="color" id="icColor" value="' + IC.color + '"><span class="hex">' + IC.color + '（仅「自定义」生效）</span></div>'
+  +   '<div class="radio-row" style="margin-top:14px">'
+  +     '<label class="' + (IC.out === 'ico' ? 'on' : '') + '"><input type="radio" name="icout" value="ico" ' + (IC.out === 'ico' ? 'checked' : '') + '>单个 .ico</label>'
+  +     '<label class="' + (IC.out === 'png' ? 'on' : '') + '"><input type="radio" name="icout" value="png" ' + (IC.out === 'png' ? 'checked' : '') + '>PNG 尺寸包</label>'
+  +   '</div>'
+  + '</div>'
+  + '<div class="ic-col">'
+  +   '<h4><span class="n">4</span>生成与下载</h4>'
+  +   '<div class="muted" style="font-size:12.5px" id="icSummary">' + icSummaryText() + '</div>'
+  +   '<button class="btn btn-primary" id="icRun" style="width:100%;margin-top:12px" ' + (canRun ? '' : 'disabled') + '>生成图标</button>'
+  +   '<div class="progress" id="icProg"><i></i></div>'
+  +   '<div id="icOut">' + icOutHTML() + '</div>'
+  + '</div>'
+  + '</div>';
+}
+function icOutHTML(){
+  if(!IC.results.length){
+    return '<div class="out-empty" style="margin-top:14px">生成后在这里预览各尺寸，并下载 .ico 或 PNG</div>';
+  }
+  return '<div class="out-grid">' + IC.results.map(r =>
+      '<div class="out-cell"><div class="box"><img src="' + r.url + '" alt="' + r.size + '"></div>'
+      + '<div class="nm">' + r.size + '×' + r.size + '</div>'
+      + '<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px" data-dl="' + r.size + '">PNG</button></div>').join('') + '</div>'
+    + '<div class="out-foot">'
+    +   '<button class="btn btn-primary btn-sm" id="icDl">' + (IC.out === 'ico' ? '下载 .ico' : '下载 PNG 尺寸包') + '</button>'
+    +   '<button class="btn btn-ghost btn-sm" id="icCopyName">复制文件名</button>'
+    +   '<span class="muted" style="font-size:11.5px;font-family:var(--mono)">' + IC.results.length + ' 帧 · ' + (IC.out === 'ico' ? '单个文件' : '逐个下载') + '</span>'
+    + '</div>';
+}
+function icBaseName(){ return (IC.name || 'icon').replace(/\.[^.]+$/, '') || 'icon'; }
+function icSetProg(p, done){
+  const box = $('#icProg'); if(!box) return;
+  box.classList.add('show'); box.firstElementChild.style.width = p + '%';
+  if(done) setTimeout(() => { box.classList.remove('show'); box.firstElementChild.style.width = '0'; }, 500);
+}
+function icRefresh(){
+  const host = $('#surfaceBody'); if(!host) return;
+  host.innerHTML = icHTML(); icBind();
+}
+function icLoadFile(file){
+  if(!file) return;
+  if(!/^image\//.test(file.type)){ toast('请选择图片文件（' + (file.type || '未知类型') + '）'); return; }
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    IC.img = img; IC.name = file.name; IC.size = file.size; IC.w = img.naturalWidth; IC.h = img.naturalHeight;
+    IC.warn = Math.max(IC.w, IC.h) > 4000 ? '图片较大（' + IC.w + '×' + IC.h + '），生成时会自动降采样到目标尺寸。' : '';
+    IC.results.forEach(r => URL.revokeObjectURL(r.url)); IC.results = [];
+    icRefresh();
+    $('#icThumb').src = url;
+    toast('已载入 ' + file.name);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast('这个图片无法解码，换一张试试'); };
+  img.src = url;
+}
+function icClear(){
+  IC.img = null; IC.name = ''; IC.size = 0; IC.w = 0; IC.h = 0; IC.warn = '';
+  IC.results.forEach(r => URL.revokeObjectURL(r.url)); IC.results = [];
+  icRefresh();
+}
+async function icBuildIco(entries){
+  const frames = [];
+  for(const e of entries){
+    frames.push({ size:e.size, buf:new Uint8Array(await e.blob.arrayBuffer()) });
+  }
+  const n = frames.length;
+  const header = new Uint8Array(6 + 16 * n);
+  const dv = new DataView(header.buffer);
+  dv.setUint16(0, 0, true); dv.setUint16(2, 1, true); dv.setUint16(4, n, true);
+  let offset = 6 + 16 * n;
+  frames.forEach((f, i) => {
+    const p = 6 + 16 * i;
+    header[p] = f.size >= 256 ? 0 : f.size;
+    header[p + 1] = f.size >= 256 ? 0 : f.size;
+    header[p + 2] = 0; header[p + 3] = 0;
+    dv.setUint16(p + 4, 1, true);    // color planes
+    dv.setUint16(p + 6, 32, true);   // bits per pixel
+    dv.setUint32(p + 8, f.buf.length, true);
+    dv.setUint32(p + 12, offset, true);
+    offset += f.buf.length;
+  });
+  return new Blob([header, ...frames.map(f => f.buf)], { type:'image/x-icon' });
+}
+async function icGenerate(){
+  if(!IC.img || !IC.sizes.size) return;
+  const sizes = [...IC.sizes].sort((a, b) => a - b);
+  const btn = $('#icRun'); btn.disabled = true; btn.textContent = '生成中…';
+  IC.results.forEach(r => URL.revokeObjectURL(r.url)); IC.results = []; icSetProg(6);
+  const out = [];
+  for(let i = 0; i < sizes.length; i++){
+    const s = sizes[i];
+    const cv = document.createElement('canvas'); cv.width = s; cv.height = s;
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    if(IC.bg !== 'transparent'){ ctx.fillStyle = IC.bg === 'white' ? '#ffffff' : IC.color; ctx.fillRect(0, 0, s, s); }
+    ctx.drawImage(IC.img, 0, 0, s, s);
+    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+    out.push({ size:s, blob, url:URL.createObjectURL(blob) });
+    icSetProg(6 + Math.round((i + 1) / sizes.length * 88));
+    await new Promise(r => setTimeout(r, 50));
+  }
+  IC.results = out;
+  icSetProg(100, true);
+  btn.disabled = false; btn.textContent = '重新生成';
+  $('#icOut').innerHTML = icOutHTML(); icBindOut();
+  toast('已生成 ' + out.length + ' 帧');
+}
+function icBindOut(){
+  const dl = $('#icDl'), cp = $('#icCopyName');
+  if(dl) dl.onclick = async () => {
+    if(IC.out === 'ico'){
+      const blob = await icBuildIco(IC.results);
+      downloadBlob(blob, icBaseName() + '.ico');
+      toast('已下载 ' + icBaseName() + '.ico（' + IC.results.length + ' 帧 · ' + fmtBytes(blob.size) + '）');
+    } else {
+      IC.results.forEach((r, i) => setTimeout(() => downloadBlob(r.blob, icBaseName() + '-' + r.size + '.png'), i * 320));
+      toast('开始逐个下载 ' + IC.results.length + ' 个 PNG（原型未内置压缩包）');
+    }
+  };
+  if(cp) cp.onclick = () => copyText(IC.out === 'ico' ? icBaseName() + '.ico' : icBaseName() + '-{size}.png', '已复制文件名模板');
+  qa('[data-dl]', $('#icOut')).forEach(b => b.onclick = () => {
+    const r = IC.results.find(x => String(x.size) === b.dataset.dl);
+    if(r){ downloadBlob(r.blob, icBaseName() + '-' + r.size + '.png'); toast('已下载 ' + r.size + '×' + r.size + '.png'); }
+  });
+}
+function icBind(){
+  const drop = $('#icDrop'), file = $('#icFile');
+  if(!drop) return;
+  drop.onclick = () => file.click();
+  file.onchange = () => { icLoadFile(file.files[0]); file.value = ''; };
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+  drop.ondragleave = () => drop.classList.remove('over');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); icLoadFile(e.dataTransfer.files[0]); };
+
+  const rs = $('#icReselect'), rm = $('#icRemove');
+  if(rs) rs.onclick = () => file.click();
+  if(rm) rm.onclick = icClear;
+  if(IC.img) $('#icThumb').src = IC.img.src;
+
+  qa('[data-size]', $('#surfaceBody')).forEach(cb => cb.onchange = () => {
+    cb.checked ? IC.sizes.add(+cb.dataset.size) : IC.sizes.delete(+cb.dataset.size);
+    icRefresh();
+  });
+  qa('[data-sizes]', $('#surfaceBody')).forEach(b => b.onclick = () => {
+    const mode = b.dataset.sizes;
+    IC.sizes = mode === 'all' ? new Set(ICON_SIZES) : mode === 'none' ? new Set() : new Set([16,32,48,256]);
+    icRefresh();
+  });
+  qa('input[name=icbg]', $('#surfaceBody')).forEach(r => r.onchange = () => { IC.bg = r.value; icRefresh(); });
+  qa('input[name=icout]', $('#surfaceBody')).forEach(r => r.onchange = () => { IC.out = r.value; icRefresh(); icBindOut(); });
+  const col = $('#icColor');
+  if(col){ col.onchange = () => { IC.color = col.value; icRefresh(); }; col.oninput = () => { IC.color = col.value; const h = $('.color-row .hex', $('#surfaceBody')); if(h) h.textContent = col.value + '（仅「自定义」生效）'; }; }
+  const run = $('#icRun'); if(run) run.onclick = icGenerate;
+  icBindOut();
+}
+
+/* ── 12. 搜索浮层 ──────────────────────────────────────────── */
+let omniSel = 0, omniList = [];
+function openOverlay(prefill){
+  $('#overlay').classList.add('open');
+  const inp = $('#omniInput');
+  inp.value = prefill || '';
+  omniRender(inp.value);
+  inp.focus(); inp.select();
+}
+function closeOverlay(){ $('#overlay').classList.remove('open'); }
+function omniRender(q){
+  const res = $('#omniRes');
+  omniList = q ? searchTools(q).slice(0, 30) : DATA.hot.map(s => TOOLMAP[s]).filter(Boolean);
+  omniSel = 0;
+  $('#omniCount').textContent = q ? (omniList.length ? omniList.length + ' 个结果' : '无结果') : '热门工具';
+  if(!omniList.length){
+    res.innerHTML = '<div class="none">没有找到「' + esc(q) + '」<br><span style="font-size:12px">按 Enter 打开完整搜索页，或换个关键词</span></div>';
+    return;
+  }
+  res.innerHTML = omniList.map((t, i) => {
+    const c = catOf(t);
+    return '<div class="row ' + (i === omniSel ? 'sel' : '') + '" data-slug="' + t.slug + '" style="--c:' + c.color + '">'
+      + '<span class="dot"></span><div class="t"><b>' + hl(t.name, q) + '</b><span>' + hl(t.memo, q) + '</span></div>'
+      + '<span class="r">/' + t.slug + '</span></div>';
+  }).join('');
+}
+function omniMove(step){
+  if(!omniList.length) return;
+  omniSel = (omniSel + step + omniList.length) % omniList.length;
+  qa('#omniRes .row').forEach((r, i) => r.classList.toggle('sel', i === omniSel));
+  const el = qa('#omniRes .row')[omniSel];
+  if(el) el.scrollIntoView({ block:'nearest' });
+}
+
+/* ── 13. 路由与视图切换 ────────────────────────────────────── */
+const RESERVED = ['tools','search','favorites','recent','about'];
+const PROTO_VIEWS = [
+  { label:'首页', hash:'#/' },
+  { label:'全部工具', hash:'#/tools' },
+  { label:'工具详情', hash:'#/icon-converter' },
+  { label:'搜索', hash:'#/search?q=json' },
+  { label:'收藏', hash:'#/favorites' },
+  { label:'最近使用', hash:'#/recent' },
+  { label:'关于', hash:'#/about' }
+];
+function parseHash(){
+  const raw = decodeURIComponent(location.hash.replace(/^#/, '')) || '/';
+  const [pathPart, queryPart] = raw.split('?');
+  const q = new URLSearchParams(queryPart || '');
+  const seg = (pathPart || '/').replace(/^\//, '').replace(/\/+$/, '');
+  if(!seg) return { name:'home' };
+  if(seg === 'tools') return { name:'tools', cat:q.get('c') || null, sort:q.get('sort') || 'cat' };
+  if(seg === 'search') return { name:'search', q:q.get('q') || '' };
+  if(seg === 'favorites') return { name:'favorites' };
+  if(seg === 'recent') return { name:'recent' };
+  if(seg === 'about') return { name:'about' };
+  if(TOOLMAP[seg]) return { name:'tool', slug:seg };
+  return { name:'404', path:'/' + seg };
+}
+function fakePath(){
+  switch(VIEW.name){
+    case 'home':      return '/';
+    case 'tools':     return '/tools' + (VIEW.cat ? '?c=' + VIEW.cat : '') + (VIEW.sort !== 'cat' ? (VIEW.cat ? '&' : '?') + 'sort=' + VIEW.sort : '');
+    case 'search':    return '/search' + (VIEW.q ? '?q=' + encodeURIComponent(VIEW.q) : '');
+    case 'favorites': return '/favorites';
+    case 'recent':    return '/recent';
+    case 'about':     return '/about';
+    case 'tool':      return '/' + VIEW.slug;
+    default:          return VIEW.path || '/';
+  }
+}
+const TITLES = { home:'码坊工具箱 · 在线开发者工具', tools:'全部工具 · 码坊工具箱', search:'搜索 · 码坊工具箱', favorites:'我的收藏 · 码坊工具箱', recent:'最近使用 · 码坊工具箱', about:'关于 · 码坊工具箱' };
+function route(){
+  const r = parseHash();
+  if(r.name === '404'){ toast('没有找到 ' + r.path + '，已回到首页'); location.replace('#/'); return; }
+  if(r.name === 'tool') pushRecent(r.slug);
+  VIEW = r;
+  if(r.name === 'tool') VIEW.slug = r.slug;
+
+  qa('[data-view]').forEach(s => s.classList.toggle('hidden', s.dataset.view !== r.name));
+  switch(r.name){
+    case 'home': renderHome(); break;
+    case 'tools': renderTools(); break;
+    case 'tool': renderTool(); break;
+    case 'search': renderSearch(); break;
+    case 'favorites': renderFavorites(); break;
+    case 'recent': renderRecent(); break;
+    case 'about': renderAbout(); break;
+  }
+  document.title = r.name === 'tool' && TOOLMAP[r.slug] ? TOOLMAP[r.slug].name + ' · 码坊工具箱' : (TITLES[r.name] || TITLES.home);
+  $('#fakePath').textContent = fakePath();
+  $('#footNote').textContent = '本页为设计原型 · 当前视图对应线上地址 ' + fakePath();
+  qa('#protoViews button').forEach(b => b.classList.toggle('on', b.dataset.hash === '#/' ? r.name === 'home' : currentProtoKey() === b.dataset.hash));
+  qa('.nav a[data-go]').forEach(a => a.classList.toggle('on', a.dataset.go === r.name));
+  qa('#navDrawer a[data-go]').forEach(a => a.classList.toggle('on', a.dataset.go === r.name));
+  $('#catMenu').classList.add('hidden');
+  $('#navDrawer').classList.remove('open');
+  renderFavCounters();
+  renderHomeRecent();
+  window.scrollTo({ top:0, behavior:'auto' });
+}
+function currentProtoKey(){
+  switch(VIEW.name){
+    case 'home': return '#/';
+    case 'tools': return '#/tools';
+    case 'tool': return VIEW.slug === 'icon-converter' ? '#/icon-converter' : '';
+    case 'search': return VIEW.q === 'json' ? '#/search?q=json' : '#/search';
+    case 'favorites': return '#/favorites';
+    case 'recent': return '#/recent';
+    case 'about': return '#/about';
+    default: return '';
+  }
+}
+function go(hash){ if(location.hash === hash) route(); else location.hash = hash; }
+function openTool(slug){ closeOverlay(); pushRecent(slug); go('#/' + slug); }
+function goTools(cat){ closeOverlay(); go('#/tools' + (cat ? '?c=' + cat : '')); }
+function goSearch(q, push){ closeOverlay(); go('#/search?q=' + encodeURIComponent(q)); }
+function renderAbout(){
+  KEYWORD = '';
+  $('#statCats').textContent = CATS.length;
+  $('#statTools').textContent = TOOLS.length;
+  $('#statLive').textContent = liveCount();
+  $('#statMigrate').textContent = migrateCount();
+}
+
+/* ── 14. 事件绑定 ──────────────────────────────────────────── */
+document.addEventListener('click', e => {
+  const t = e.target;
+  const fav = t.closest('[data-fav]');
+  if(fav){ e.preventDefault(); toggleFav(fav.dataset.fav); return; }
+
+  const cardEl = t.closest('.tool-card[data-slug], .rail-item[data-slug], .list-card[data-slug], #omniRes .row[data-slug], .chip[data-slug]');
+  if(cardEl){ e.preventDefault(); openTool(cardEl.dataset.slug); return; }
+
+  const catEl = t.closest('[data-cat]');
+  if(catEl){
+    e.preventDefault();
+    const c = catEl.dataset.cat;
+    if(catEl.classList.contains('fchip')) go('#/tools' + (c ? '?c=' + c : ''));
+    else goTools(c);
+    return;
+  }
+
+  const hot = t.closest('[data-hot]');
+  if(hot){ e.preventDefault(); go('#/tools?sort=new'); return; }
+
+  const copyRoute = t.closest('[data-copyroute]');
+  if(copyRoute){ e.preventDefault(); copyText('https://tools.codewf.com/' + copyRoute.dataset.copyroute, '已复制线上地址'); return; }
+
+  const goEl = t.closest('[data-go]');
+  if(goEl){
+    const href = goEl.getAttribute('href') || '#/';
+    if(location.hash === href){ e.preventDefault(); route(); }
+    return;
+  }
+});
+document.addEventListener('keydown', e => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); openOverlay(''); return; }
+  if(e.key === 'Escape'){
+    if($('#overlay').classList.contains('open')) closeOverlay();
+    $('#navDrawer').classList.remove('open'); $('#catMenu').classList.add('hidden');
+    return;
+  }
+  if(e.altKey && /^[1-7]$/.test(e.key)){ e.preventDefault(); go(PROTO_VIEWS[+e.key - 1].hash); return; }
+  if(!typing && e.key === '/'){ e.preventDefault(); if(VIEW.name === 'home'){ $('#heroInput').focus(); } else { openOverlay(''); } return; }
+  if(!typing && e.key.toLowerCase() === 'f' && VIEW.name === 'tool'){ toggleFav(VIEW.slug); return; }
+});
+$('#overlay').addEventListener('click', e => { if(e.target === $('#overlay')) closeOverlay(); });
+$('#omniInput').addEventListener('input', e => omniRender(e.target.value));
+$('#omniInput').addEventListener('keydown', e => {
+  if(e.key === 'ArrowDown'){ e.preventDefault(); omniMove(1); }
+  else if(e.key === 'ArrowUp'){ e.preventDefault(); omniMove(-1); }
+  else if(e.key === 'Enter'){
+    const q = e.target.value.trim();
+    if(omniList.length) openTool(omniList[omniSel].slug);
+    else if(q) goSearch(q);
+  }
+});
+$('#searchOpen').onclick = () => openOverlay('');
+$('#navToggle').onclick = () => $('#navDrawer').classList.toggle('open');
+$('#catDropBtn').onclick = e => { e.stopPropagation(); $('#catMenu').classList.toggle('hidden'); };
+$('#catMenuInner').innerHTML = CATS.map(c => '<button class="fchip" data-cat="' + c.slug + '">' + c.icon + ' ' + esc(c.name) + '</button>').join('');
+$('#heroGo').onclick = () => { const q = $('#heroInput').value.trim(); q ? goSearch(q) : go('#/tools'); };
+$('#heroInput').addEventListener('keydown', e => { if(e.key === 'Enter'){ const q = e.target.value.trim(); q ? goSearch(q) : go('#/tools'); } });
+$('#heroSearch').addEventListener('click', e => { if(e.target.closest('.go')) return; $('#heroInput').focus(); });
+$('#sortSel').onchange = e => { const s = e.target.value; go('#/tools?c=' + (VIEW.cat || '') + '&sort=' + s); };
+$('#toolFavBtn').onclick = () => toggleFav(VIEW.slug);
+$('#toolLinkBtn').onclick = () => copyText('https://tools.codewf.com/' + VIEW.slug, '已复制工具链接');
+$('#favClear').onclick = () => { if(FAVS.length) clearFavs(); };
+$('#recClear').onclick = () => { if(RECENTS.length) clearRecents(); };
+$('#protoViews').innerHTML = PROTO_VIEWS.map((v, i) => '<button data-hash="' + v.hash + '" title="Alt+' + (i + 1) + '">' + v.label + '</button>').join('');
+qa('#protoViews button').forEach(b => b.onclick = () => go(b.dataset.hash));
+$('#protoReset').onclick = () => {
+  localStorage.removeItem(LS.fav); localStorage.removeItem(LS.recent); localStorage.removeItem(LS.theme);
+  FAVS = []; RECENTS = [];
+  document.documentElement.removeAttribute('data-theme');
+  applyTheme(document.documentElement, 'light');
+  toast('已重置本地数据（收藏 / 最近使用 / 主题）');
+  route();
+};
+window.addEventListener('hashchange', route);
+
+/* 主题 */
+function applyTheme(root, mode){
+  const btn = $('#themeBtn');
+  if(mode === 'dark'){ root.dataset.theme = 'dark'; btn.textContent = '☀'; }
+  else { delete root.dataset.theme; btn.textContent = '☾'; }
+}
+$('#themeBtn').onclick = () => {
+  const root = document.documentElement;
+  const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(LS.theme, next);
+  applyTheme(root, next);
+};
+
+/* ── 15. 启动 ──────────────────────────────────────────────── */
+(function init(){
+  const root = document.documentElement;
+  let mode = localStorage.getItem(LS.theme);
+  if(mode !== 'light' && mode !== 'dark') mode = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  applyTheme(root, mode);
+  route();
+})();
+})();
+</script>
+
+</body>
+
+</html>
